@@ -1,0 +1,58 @@
+{
+  "name": "sprucecrafter",
+  "version": "1.0.0",
+  "description": "Professional 3D Model to Sprue Conversion Tool for Resin Printing",
+  "main": "src/electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:electron\"",
+    "dev:backend": "python src/backend/app.py",
+    "dev:electron": "electron . --dev",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux"
+  },
+  "keywords": [
+    "3d",
+    "modeling",
+    "sprue",
+    "resin-printing",
+    "scale-model"
+  ],
+  "author": "SprueCrafter Team",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^27.0.0",
+    "electron-builder": "^24.6.4",
+    "concurrently": "^8.2.2"
+  },
+  "dependencies": {
+    "three": "^0.158.0",
+    "axios": "^1.6.0"
+  },
+  "build": {
+    "appId": "com.sprucecrafter.app",
+    "productName": "SprueCrafter",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": ["nsis"],
+      "icon": "assets/icon.ico"
+    },
+    "mac": {
+      "target": ["dmg"],
+      "icon": "assets/icon.icns"
+    },
+    "linux": {
+      "target": ["AppImage"],
+      "icon": "assets/icon.png"
+    }
+  }
+}

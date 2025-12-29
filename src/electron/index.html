@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SprueCrafter - Professional 3D Sprue Generator</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+          <rect width="32" height="32" rx="6" fill="#00e5ff"/>
+          <path d="M16 8L20 14H12L16 8Z" fill="#1a1a1a"/>
+          <rect x="14" y="14" width="4" height="10" fill="#1a1a1a"/>
+          <circle cx="10" cy="22" r="2" fill="#1a1a1a"/>
+          <circle cx="22" cy="22" r="2" fill="#1a1a1a"/>
+        </svg>
+        <h1>SprueCrafter</h1>
+      </div>
+      <div class="header-info">
+        <span class="version">v1.0.0</span>
+        <button class="btn-icon" id="settings-btn" title="Settings">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M12 1v6m0 6v6m5.656-5.656l-4.242-4.242m-6.828 0L2.344 13.344m18.312 0l-4.242-4.242m-6.828 0L2.344 13.344"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <nav class="sidebar-nav">
+          <button class="nav-btn active" data-tab="import">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            <span>Import</span>
+          </button>
+          
+          <button class="nav-btn" data-tab="convert">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="16 3 21 3 21 8"></polyline>
+              <line x1="4" y1="20" x2="21" y2="3"></line>
+              <polyline points="21 16 21 21 16 21"></polyline>
+              <line x1="15" y1="15" x2="21" y2="21"></line>
+              <line x1="4" y1="4" x2="9" y2="9"></line>
+            </svg>
+            <span>Convert</span>
+          </button>
+          
+          <button class="nav-btn" data-tab="scale">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+            </svg>
+            <span>Scale</span>
+          </button>
+          
+          <button class="nav-btn" data-tab="separate">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+            <span>Separate</span>
+          </button>
+          
+          <button class="nav-btn" data-tab="sprue">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="16"></line>
+              <line x1="8" y1="12" x2="16" y2="12"></line>
+            </svg>
+            <span>Sprue Gen</span>
+          </button>
+          
+          <button class="nav-btn" data-tab="photo">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <circle cx="8.5" cy="8.5" r="1.5"></circle>
+              <polyline points="21 15 16 10 5 21"></polyline>
+            </svg>
+            <span>Photo2Model</span>
+          </button>
+          
+          <button class="nav-btn" data-tab="viewer">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+            <span>3D Viewer</span>
+          </button>
+        </nav>
+      </aside>
+
+      <!-- Content Area -->
+      <div class="content-area">
+        <!-- Import Tab -->
+        <div class="tab-content active" id="import-tab">
+          <h2>Import 3D Model</h2>
+          <div class="upload-zone" id="upload-zone">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            <p>Drag & Drop 3D model here or click to browse</p>
+            <p class="file-types">Supported: STL, OBJ, FBX, 3DS, PLY, GLTF, GLB, DAE</p>
+            <input type="file" id="file-input" accept=".stl,.obj,.fbx,.3ds,.ply,.gltf,.glb,.dae" hidden>
+          </div>
+          <div id="file-info" class="file-info hidden">
+            <h3>File Information</h3>
+            <div id="file-details"></div>
+          </div>
+        </div>
+
+        <!-- Convert Tab -->
+        <div class="tab-content" id="convert-tab">
+          <h2>Convert File Format</h2>
+          <div class="form-group">
+            <label>Target Format:</label>
+            <select id="target-format" class="form-control">
+              <option value="stl">STL</option>
+              <option value="obj">OBJ</option>
+              <option value="ply">PLY</option>
+              <option value="gltf">GLTF</option>
+              <option value="glb">GLB</option>
+            </select>
+          </div>
+          <button class="btn-primary" id="convert-btn">Convert File</button>
+          <div id="convert-status" class="status-message"></div>
+        </div>
+
+        <!-- Scale Tab -->
+        <div class="tab-content" id="scale-tab">
+          <h2>Scale Model</h2>
+          <div class="form-group">
+            <label>Scale:</label>
+            <select id="scale-select" class="form-control">
+              <option value="0.02857">1/35 Scale (Default)</option>
+              <option value="0.02083">1/48 Scale</option>
+              <option value="0.01389">1/72 Scale</option>
+              <option value="0.00694">1/144 Scale</option>
+              <option value="custom">Custom Scale</option>
+            </select>
+          </div>
+          <div class="form-group hidden" id="custom-scale-group">
+            <label>Custom Scale Factor:</label>
+            <input type="number" id="custom-scale" class="form-control" step="0.001" placeholder="0.02857">
+          </div>
+          <div class="form-group">
+            <label>Input Unit:</label>
+            <select id="unit-select" class="form-control">
+              <option value="mm">Millimeters (mm)</option>
+              <option value="cm">Centimeters (cm)</option>
+              <option value="in">Inches (in)</option>
+              <option value="m">Meters (m)</option>
+            </select>
+          </div>
+          <button class="btn-primary" id="scale-btn">Scale Model</button>
+          <div id="scale-status" class="status-message"></div>
+        </div>
+
+        <!-- Separate Tab -->
+        <div class="tab-content" id="separate-tab">
+          <h2>Separate & Categorize Parts</h2>
+          <p>Automatically separate model into individual parts and categorize them for sprue organization.</p>
+          <button class="btn-primary" id="separate-btn">Separate Parts</button>
+          <div id="separate-status" class="status-message"></div>
+          <div id="parts-list" class="parts-list hidden"></div>
+        </div>
+
+        <!-- Sprue Tab -->
+        <div class="tab-content" id="sprue-tab">
+          <h2>Generate Sprue</h2>
+          <div class="form-group">
+            <label>Printer Profile:</label>
+            <select id="printer-profile" class="form-control">
+              <option value="elegoo_mars_3">Elegoo Mars 3</option>
+              <option value="anycubic_photon_mono_4k">Anycubic Photon Mono 4K</option>
+              <option value="phrozen_sonic_mighty_4k">Phrozen Sonic Mighty 4K</option>
+              <option value="creality_halot_one">Creality Halot One</option>
+              <option value="custom">Custom</option>
+            </select>
+          </div>
+          <div id="custom-build-plate" class="hidden">
+            <div class="form-row">
+              <div class="form-group">
+                <label>Width (mm):</label>
+                <input type="number" id="plate-x" class="form-control" value="192">
+              </div>
+              <div class="form-group">
+                <label>Depth (mm):</label>
+                <input type="number" id="plate-y" class="form-control" value="120">
+              </div>
+              <div class="form-group">
+                <label>Height (mm):</label>
+                <input type="number" id="plate-z" class="form-control" value="245">
+              </div>
+            </div>
+          </div>
+          <button class="btn-primary" id="generate-sprue-btn">Generate Sprue</button>
+          <div id="sprue-status" class="status-message"></div>
+        </div>
+
+        <!-- Photo Tab -->
+        <div class="tab-content" id="photo-tab">
+          <h2>Photo to 3D Model</h2>
+          <p>Upload multiple photos from different angles to create a 3D model.</p>
+          <button class="btn-secondary" id="select-photos-btn">Select Photos</button>
+          <div id="photo-preview" class="photo-preview"></div>
+          <button class="btn-primary hidden" id="generate-model-btn">Generate 3D Model</button>
+          <div id="photo-status" class="status-message"></div>
+        </div>
+
+        <!-- Viewer Tab -->
+        <div class="tab-content" id="viewer-tab">
+          <h2>3D Viewer</h2>
+          <div id="viewer-container" class="viewer-container">
+            <div class="viewer-controls">
+              <button class="btn-icon" id="rotate-btn" title="Rotate">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="23 4 23 10 17 10"></polyline>
+                  <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                </svg>
+              </button>
+              <button class="btn-icon" id="zoom-in-btn" title="Zoom In">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  <line x1="11" y1="8" x2="11" y2="14"></line>
+                  <line x1="8" y1="11" x2="14" y2="11"></line>
+                </svg>
+              </button>
+              <button class="btn-icon" id="zoom-out-btn" title="Zoom Out">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  <line x1="8" y1="11" x2="14" y2="11"></line>
+                </svg>
+              </button>
+              <button class="btn-icon" id="reset-view-btn" title="Reset View">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="1 4 1 10 7 10"></polyline>
+                  <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                </svg>
+              </button>
+            </div>
+            <canvas id="viewer-canvas"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status Bar -->
+    <footer class="status-bar">
+      <div class="status-left">
+        <span id="status-text">Ready</span>
+      </div>
+      <div class="status-right">
+        <span id="api-status">Backend: <span class="status-dot"></span></span>
+      </div>
+    </footer>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
