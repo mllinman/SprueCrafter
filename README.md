@@ -4,6 +4,8 @@
 
 SprueCrafter is a powerful application that converts 3D object data into 1/35th scale model sprues optimized for resin 3D printing. It rivals industry-standard quality from manufacturers like Meng and Takom, while providing modern tools for automatic part separation, categorization, and sprue generation.
 
+> **🚀 NEW: SaaS Deployment Ready!** SprueCrafter now supports full SaaS deployment with authentication, database persistence, cloud storage, and horizontal scaling. See [SAAS_README.md](SAAS_README.md) and [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for details.
+
 ![SprueCrafter Banner](assets/banner.png)
 
 ## Features
@@ -43,13 +45,15 @@ Pre-configured profiles for popular resin printers:
 
 ## Installation
 
-### Prerequisites
+### Desktop Application (Traditional)
+
+#### Prerequisites
 
 - **Node.js** (v16 or higher)
 - **Python** (v3.8 or higher)
 - **Git**
 
-### Setup Instructions
+#### Setup Instructions
 
 1. **Clone the repository**
    ```bash
@@ -78,6 +82,55 @@ To run in development mode with auto-reload:
 ```bash
 npm run dev
 ```
+
+### SaaS Deployment (New!)
+
+For deploying SprueCrafter as a web-based SaaS application:
+
+#### Quick Start with Docker Compose
+```bash
+# Copy and configure environment
+cp .env.example .env
+# Edit .env with your settings
+
+# Start all services
+docker-compose up -d
+
+# Initialize database
+docker-compose exec backend flask db upgrade
+docker-compose exec backend flask create-admin
+
+# Access at http://localhost:3000
+```
+
+#### Production Kubernetes Deployment
+```bash
+# Configure secrets
+kubectl create secret generic sprucecrafter-secrets \
+  --from-literal=SECRET_KEY="your-secret" \
+  -n sprucecrafter
+
+# Deploy
+kubectl apply -f k8s-deployment.yaml
+```
+
+**📖 For complete SaaS deployment instructions, see:**
+- [SAAS_README.md](SAAS_README.md) - Quick start guide
+- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) - Comprehensive deployment guide
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) - Architecture overview
+- [docs/MIGRATION_GUIDE.md](docs/MIGRATION_GUIDE.md) - Migration from desktop
+
+## SaaS Features
+
+The SaaS version includes enterprise-grade features:
+
+- **🔐 Authentication**: JWT-based user authentication with API keys
+- **💾 Database**: PostgreSQL for persistent data storage
+- **☁️ Cloud Storage**: S3-compatible file storage
+- **📊 Monitoring**: Prometheus metrics and health checks
+- **🔄 CI/CD**: Automated build, test, and deployment
+- **⚖️ Scalability**: Horizontal pod autoscaling
+- **🛡️ Security**: Rate limiting, CORS, and encrypted secrets
 
 ## Usage Guide
 

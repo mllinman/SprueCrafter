@@ -1,0 +1,12 @@
+# Production-specific Python dependencies
+gunicorn==21.2.0
+psycopg2-binary==2.9.9
+redis==5.0.1
+python-dotenv==1.0.0
+flask-sqlalchemy==3.1.1
+flask-migrate==4.0.5
+flask-jwt-extended==4.5.3
+flask-limiter==3.5.0
+boto3==1.34.0
+sentry-sdk[flask]==1.39.1
+prometheus-flask-exporter==0.23.0
