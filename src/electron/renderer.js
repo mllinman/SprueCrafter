@@ -20,6 +20,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initializeConvert();
   initializeScale();
   initializeSeparate();
+  initializeTransform();
+  initializeSupports();
   initializeSprue();
   initializePhoto();
   checkBackendStatus();
@@ -275,6 +277,159 @@ function displayPartsInfo(data) {
   partsList.classList.remove('hidden');
 }
 
+// Transform functionality
+function initializeTransform() {
+  const rotateBtn = document.getElementById('rotate-model-btn');
+  const translateBtn = document.getElementById('translate-model-btn');
+  
+  rotateBtn.addEventListener('click', async () => {
+    if (!currentFile) {
+      showStatus('transform-status', 'Please upload a file first', 'error');
+      return;
+    }
+    
+    const axis = document.getElementById('rotate-axis').value;
+    const angle = document.getElementById('rotate-angle').value;
+    
+    try {
+      showStatus('transform-status', 'Rotating model...', 'info');
+      rotateBtn.disabled = true;
+      
+      const formData = new FormData();
+      formData.append('file', fs.createReadStream(currentFile.path));
+      formData.append('operation', 'rotate');
+      formData.append('axis', axis);
+      formData.append('angle', angle);
+      
+      const response = await axios.post(`${API_BASE}/transform`, formData, {
+        headers: formData.getHeaders(),
+        responseType: 'blob'
+      });
+      
+      const savePath = await ipcRenderer.invoke('save-file', 
+        `${currentFile.name.split('.')[0]}_rotated.stl`);
+      
+      if (savePath) {
+        fs.writeFileSync(savePath, response.data);
+        showStatus('transform-status', 'Model rotated successfully!', 'success');
+      }
+    } catch (error) {
+      console.error('Rotation error:', error);
+      showStatus('transform-status', `Error: ${error.message}`, 'error');
+    } finally {
+      rotateBtn.disabled = false;
+    }
+  });
+  
+  translateBtn.addEventListener('click', async () => {
+    if (!currentFile) {
+      showStatus('transform-status', 'Please upload a file first', 'error');
+      return;
+    }
+    
+    const x = document.getElementById('translate-x').value;
+    const y = document.getElementById('translate-y').value;
+    const z = document.getElementById('translate-z').value;
+    
+    try {
+      showStatus('transform-status', 'Translating model...', 'info');
+      translateBtn.disabled = true;
+      
+      const formData = new FormData();
+      formData.append('file', fs.createReadStream(currentFile.path));
+      formData.append('operation', 'translate');
+      formData.append('x', x);
+      formData.append('y', y);
+      formData.append('z', z);
+      
+      const response = await axios.post(`${API_BASE}/transform`, formData, {
+        headers: formData.getHeaders(),
+        responseType: 'blob'
+      });
+      
+      const savePath = await ipcRenderer.invoke('save-file', 
+        `${currentFile.name.split('.')[0]}_translated.stl`);
+      
+      if (savePath) {
+        fs.writeFileSync(savePath, response.data);
+        showStatus('transform-status', 'Model translated successfully!', 'success');
+      }
+    } catch (error) {
+      console.error('Translation error:', error);
+      showStatus('transform-status', `Error: ${error.message}`, 'error');
+    } finally {
+      translateBtn.disabled = false;
+    }
+  });
+}
+
+// Supports functionality
+function initializeSupports() {
+  const generateBtn = document.getElementById('generate-supports-btn');
+  const supportMode = document.getElementById('support-mode');
+  
+  generateBtn.addEventListener('click', async () => {
+    if (!currentFile) {
+      showStatus('supports-status', 'Please upload a file first', 'error');
+      return;
+    }
+    
+    const mode = supportMode.value;
+    const overhangAngle = document.getElementById('overhang-angle').value;
+    const density = document.getElementById('support-density').value;
+    
+    try {
+      showStatus('supports-status', 'Generating supports...', 'info');
+      generateBtn.disabled = true;
+      
+      const formData = new FormData();
+      formData.append('file', fs.createReadStream(currentFile.path));
+      formData.append('mode', mode);
+      formData.append('overhang_angle', overhangAngle);
+      formData.append('density', density);
+      
+      const response = await axios.post(`${API_BASE}/generate-supports`, formData, {
+        headers: formData.getHeaders(),
+        responseType: mode === 'estimate' ? 'json' : 'blob'
+      });
+      
+      if (mode === 'estimate') {
+        displaySupportsInfo(response.data);
+        showStatus('supports-status', 'Support estimation complete', 'success');
+      } else {
+        const savePath = await ipcRenderer.invoke('save-file', 
+          `${currentFile.name.split('.')[0]}_with_supports.stl`);
+        
+        if (savePath) {
+          fs.writeFileSync(savePath, response.data);
+          showStatus('supports-status', 'Supports generated successfully!', 'success');
+        }
+      }
+    } catch (error) {
+      console.error('Supports error:', error);
+      showStatus('supports-status', `Error: ${error.message}`, 'error');
+    } finally {
+      generateBtn.disabled = false;
+    }
+  });
+}
+
+function displaySupportsInfo(data) {
+  const supportsInfo = document.getElementById('supports-info');
+  
+  const html = `
+    <h4>Support Estimation</h4>
+    <ul>
+      <li><strong>Number of supports:</strong> ${data.num_supports}</li>
+      <li><strong>Average height:</strong> ${data.avg_height.toFixed(2)} mm</li>
+      <li><strong>Estimated material:</strong> ${data.estimated_material.toFixed(2)} mm³</li>
+    </ul>
+  `;
+  
+  supportsInfo.innerHTML = html;
+  supportsInfo.classList.remove('hidden');
+}
+
 // Sprue functionality
 function initializeSprue() {
   const generateBtn = document.getElementById('generate-sprue-btn');
@@ -314,11 +469,14 @@ function initializeSprue() {
       showStatus('sprue-status', 'Generating sprue...', 'info');
       generateBtn.disabled = true;
       
+      const connectorType = document.getElementById('connector-type').value;
+      
       const formData = new FormData();
       formData.append('file', fs.createReadStream(currentFile.path));
       formData.append('build_plate_x', buildPlateX);
       formData.append('build_plate_y', buildPlateY);
       formData.append('build_plate_z', buildPlateZ);
+      formData.append('connector_type', connectorType);
       
       const response = await axios.post(`${API_BASE}/generate-sprue`, formData, {
         headers: formData.getHeaders(),
