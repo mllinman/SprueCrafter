@@ -218,10 +218,12 @@ When reporting bugs, include:
 ## Feature Requests
 
 When suggesting features:
+- **Check [FUTURE_IMPROVEMENTS.md](FUTURE_IMPROVEMENTS.md) first** to see if it's already planned
 - Describe the use case
 - Explain the benefit
 - Provide examples if possible
 - Consider implementation complexity
+- Reference similar features in competitive tools (Chitubox, Lychee, etc.)
 
 ## Code Review
 
@@ -270,28 +272,33 @@ Contributors will be:
 
 ## Areas for Contribution
 
-Looking for where to help? Consider:
+Looking for where to help? Check **[FUTURE_IMPROVEMENTS.md](FUTURE_IMPROVEMENTS.md)** for a comprehensive list of 40+ feature categories to implement!
 
 ### High Priority
-- Additional 3D file format support
-- Enhanced photogrammetry algorithms
-- Advanced mesh repair tools
-- Performance optimizations
-- Test coverage
+- Island detection and analysis
+- Advanced hollowing tools with lattice infill
+- One-click mesh repair
+- Tree/organic support structures
+- Variable layer height slicing
+- Batch processing improvements
 
 ### Medium Priority
-- UI/UX improvements
-- Additional printer profiles
-- Export format options
-- Batch processing
-- Keyboard shortcuts
+- Flow simulation for sprues
+- AI-powered orientation optimization
+- Advanced sculpting tools
+- Print analytics and success tracking
+- Cloud storage integration
+- Enhanced 3D viewer features
 
 ### Nice to Have
-- Cloud processing integration
-- Model marketplace
-- Advanced texturing
-- Animation support
-- VR preview
+- VR modeling interface
+- Mobile applications (iOS/Android)
+- Web-based editor
+- Parametric design tools
+- Community marketplace
+- Multi-material support
+
+See [FUTURE_IMPROVEMENTS.md](FUTURE_IMPROVEMENTS.md) for complete details on all planned features.
 
 ## Development Tools
 

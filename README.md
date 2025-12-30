@@ -344,9 +344,13 @@ Compiled applications will be in the `dist/` directory.
 - Split very large models manually
 - Close other applications
 
+## Future Development
+
+See [FUTURE_IMPROVEMENTS.md](FUTURE_IMPROVEMENTS.md) for a comprehensive list of planned features and enhancements, including capabilities from competitive slicer and sprue creation programs.
+
 ## Contributing
 
-Contributions are welcome! Please feel free to submit pull requests or open issues for bugs and feature requests.
+Contributions are welcome! Please feel free to submit pull requests or open issues for bugs and feature requests. Check [FUTURE_IMPROVEMENTS.md](FUTURE_IMPROVEMENTS.md) for ideas on what features to implement.
 
 ## License
 
