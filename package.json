@@ -8,6 +8,7 @@
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:electron\"",
     "dev:backend": "python src/backend/app.py",
     "dev:electron": "electron . --dev",
+    "dev:web": "python src/backend/app_web.py",
     "build": "electron-builder",
     "build:win": "electron-builder --win",
     "build:mac": "electron-builder --mac",

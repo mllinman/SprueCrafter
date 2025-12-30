@@ -81,6 +81,12 @@ class Config:
     ENABLE_REGISTRATION = os.getenv('ENABLE_REGISTRATION', 'True').lower() == 'true'
     ENABLE_PHOTO_TO_MODEL = os.getenv('ENABLE_PHOTO_TO_MODEL', 'True').lower() == 'true'
     ENABLE_CLOUD_STORAGE = os.getenv('ENABLE_CLOUD_STORAGE', 'False').lower() == 'true'
+    
+    # Stripe Configuration
+    STRIPE_PUBLISHABLE_KEY = os.getenv('STRIPE_PUBLISHABLE_KEY')
+    STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
+    STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET')
+    STRIPE_PRO_PRICE_ID = os.getenv('STRIPE_PRO_PRICE_ID')  # Price ID for Pro subscription
 
 
 class DevelopmentConfig(Config):
