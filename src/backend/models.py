@@ -2,7 +2,7 @@
 Database models for SprueCrafter
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 import uuid
@@ -34,8 +34,8 @@ class User(db.Model):
     plan = db.Column(db.String(20), default='free')  # free, pro, enterprise
     
     # Timestamps
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     last_login = db.Column(db.DateTime)
     
     # Relationships
@@ -98,8 +98,8 @@ class File(db.Model):
     status = db.Column(db.String(20), default='uploaded')  # uploaded, processing, processed, failed
     
     # Timestamps
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     expires_at = db.Column(db.DateTime)  # For temporary files
     
     def to_dict(self):
@@ -140,7 +140,7 @@ class ProcessingJob(db.Model):
     error_message = db.Column(db.Text)
     
     # Timestamps
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
     started_at = db.Column(db.DateTime)
     completed_at = db.Column(db.DateTime)
     
@@ -181,7 +181,7 @@ class ApiUsage(db.Model):
     user_agent = db.Column(db.String(255))
     
     # Timestamp
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
     
     def to_dict(self):
         """Convert usage to dictionary"""

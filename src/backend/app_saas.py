@@ -15,7 +15,7 @@ import sys
 import tempfile
 import traceback
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Add src to path for imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -32,6 +32,9 @@ from core.sprue_generator import SprueGenerator
 from core.photo_to_model import PhotoToModel
 from core.transformer import Transformer
 from core.support_generator import SupportGenerator
+
+# Constants
+MAX_USER_AGENT_LENGTH = 255
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -81,7 +84,7 @@ if config.SENTRY_DSN:
 @app.before_request
 def before_request():
     """Track request start time"""
-    g.start_time = datetime.utcnow()
+    g.start_time = datetime.now(timezone.utc)
 
 
 @app.after_request
@@ -89,7 +92,7 @@ def after_request(response):
     """Log API usage"""
     if hasattr(g, 'current_user') and g.current_user and hasattr(g, 'start_time'):
         try:
-            response_time = (datetime.utcnow() - g.start_time).total_seconds()
+            response_time = (datetime.now(timezone.utc) - g.start_time).total_seconds()
             usage = ApiUsage(
                 user_id=g.current_user.id,
                 endpoint=request.endpoint,
@@ -97,7 +100,7 @@ def after_request(response):
                 status_code=response.status_code,
                 response_time=response_time,
                 ip_address=request.remote_addr,
-                user_agent=request.user_agent.string[:255] if request.user_agent else None
+                user_agent=request.user_agent.string[:MAX_USER_AGENT_LENGTH] if request.user_agent else None
             )
             db.session.add(usage)
             db.session.commit()
@@ -212,7 +215,7 @@ def login():
         return jsonify({'error': 'Account is inactive'}), 401
     
     # Update last login
-    user.last_login = datetime.utcnow()
+    user.last_login = datetime.now(timezone.utc)
     db.session.commit()
     
     # Create tokens
