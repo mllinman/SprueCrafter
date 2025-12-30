@@ -61,3 +61,8 @@ test_models/
 # Logs
 *.log
 logs/
+
+# Environment variables
+.env
+.env.local
+.env.production
