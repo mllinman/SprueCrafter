@@ -5,6 +5,7 @@ Subscription tier limits and usage tracking for SprueCrafter
 from functools import wraps
 from flask import g, jsonify, request
 from datetime import datetime, timezone, timedelta
+from dateutil.relativedelta import relativedelta
 from models import User, ProcessingJob, File, db
 from sqlalchemy import func
 
@@ -79,7 +80,7 @@ def get_user_usage(user):
         'storage_used_gb': round(storage_used_gb, 2),
         'active_jobs': active_jobs,
         'period_start': month_start.isoformat(),
-        'period_end': (month_start + timedelta(days=32)).replace(day=1).isoformat()
+        'period_end': (month_start + relativedelta(months=1)).isoformat()
     }
 
 

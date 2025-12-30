@@ -6,7 +6,7 @@ import stripe
 import os
 from flask import current_app, request, jsonify
 from datetime import datetime, timezone
-from src.backend.models import db, User
+from .models import db, User
 
 
 def init_stripe():

@@ -51,6 +51,8 @@ document.addEventListener('DOMContentLoaded', () => {
   if (proButton) {
     proButton.addEventListener('click', async () => {
       // Check if user is authenticated
+      // NOTE: In production, consider using httpOnly cookies instead of localStorage
+      // for better XSS protection. This is acceptable for demo/development.
       const token = localStorage.getItem('access_token');
       
       if (!token) {
