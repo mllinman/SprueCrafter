@@ -44,8 +44,6 @@ class SprueGenerator:
         # Validate connector type
         if connector_type not in self.connector_types:
             connector_type = 'cylindrical'
-        
-        self.current_connector_type = connector_type
         # Load model/parts
         scene = trimesh.load(input_path)
         

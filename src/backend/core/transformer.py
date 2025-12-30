@@ -7,6 +7,7 @@ import trimesh
 import numpy as np
 import os
 import tempfile
+import shutil
 
 
 class Transformer:
@@ -14,6 +15,18 @@ class Transformer:
     
     def __init__(self):
         self.temp_dir = tempfile.mkdtemp()
+    
+    def __del__(self):
+        """Cleanup temporary directory on object destruction"""
+        self.cleanup()
+    
+    def cleanup(self):
+        """Remove temporary directory and all its contents"""
+        if hasattr(self, 'temp_dir') and os.path.exists(self.temp_dir):
+            try:
+                shutil.rmtree(self.temp_dir)
+            except Exception:
+                pass  # Ignore cleanup errors
     
     def transform(self, input_path, operation, **params):
         """

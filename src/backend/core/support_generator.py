@@ -244,7 +244,8 @@ class SupportGenerator:
         
         if num_supports > 0:
             avg_height = np.mean(support_points[:, 2]) - mesh.bounds[0][2]
-            total_material = num_supports * avg_height * np.pi * (self.support_diameter / 2) ** 2
+            # Support volume calculation for cone: V = (1/3) * π * r² * h
+            total_material = num_supports * avg_height * np.pi * (self.support_base_diameter / 2) ** 2 / 3
         else:
             avg_height = 0
             total_material = 0
