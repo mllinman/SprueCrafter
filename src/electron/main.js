@@ -1,0 +1,127 @@
+/**
+ * SprueCrafter - Main Electron Process
+ * Handles application window and backend integration
+ */
+
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const path = require('path');
+const { spawn } = require('child_process');
+
+let mainWindow;
+let pythonProcess;
+
+function createWindow() {
+  mainWindow = new BrowserWindow({
+    width: 1400,
+    height: 900,
+    minWidth: 1200,
+    minHeight: 700,
+    backgroundColor: '#1a1a1a',
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false,
+      enableRemoteModule: true
+    },
+    icon: path.join(__dirname, '../../assets/icon.png'),
+    frame: true,
+    titleBarStyle: 'default'
+  });
+
+  mainWindow.loadFile(path.join(__dirname, 'index.html'));
+
+  // Open DevTools in development
+  if (process.argv.includes('--dev')) {
+    mainWindow.webContents.openDevTools();
+  }
+
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
+}
+
+function startPythonBackend() {
+  const pythonScript = path.join(__dirname, '../backend/app.py');
+  
+  pythonProcess = spawn('python', [pythonScript]);
+
+  pythonProcess.stdout.on('data', (data) => {
+    console.log(`Backend: ${data}`);
+  });
+
+  pythonProcess.stderr.on('data', (data) => {
+    console.error(`Backend Error: ${data}`);
+  });
+
+  pythonProcess.on('close', (code) => {
+    console.log(`Backend process exited with code ${code}`);
+  });
+}
+
+app.whenReady().then(() => {
+  createWindow();
+  
+  // Start Python backend
+  // Note: In production, handle this more robustly
+  // startPythonBackend();
+
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow();
+    }
+  });
+});
+
+app.on('window-all-closed', () => {
+  if (pythonProcess) {
+    pythonProcess.kill();
+  }
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
+});
+
+// IPC Handlers
+ipcMain.handle('select-file', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openFile'],
+    filters: [
+      { name: '3D Models', extensions: ['stl', 'obj', 'fbx', '3ds', 'ply', 'gltf', 'glb', 'dae'] },
+      { name: 'All Files', extensions: ['*'] }
+    ]
+  });
+  
+  if (!result.canceled && result.filePaths.length > 0) {
+    return result.filePaths[0];
+  }
+  return null;
+});
+
+ipcMain.handle('select-multiple-files', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openFile', 'multiSelections'],
+    filters: [
+      { name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'bmp', 'tiff'] },
+      { name: 'All Files', extensions: ['*'] }
+    ]
+  });
+  
+  if (!result.canceled && result.filePaths.length > 0) {
+    return result.filePaths;
+  }
+  return [];
+});
+
+ipcMain.handle('save-file', async (event, defaultPath) => {
+  const result = await dialog.showSaveDialog(mainWindow, {
+    defaultPath: defaultPath,
+    filters: [
+      { name: 'STL Files', extensions: ['stl'] },
+      { name: 'All Files', extensions: ['*'] }
+    ]
+  });
+  
+  if (!result.canceled) {
+    return result.filePath;
+  }
+  return null;
+});
