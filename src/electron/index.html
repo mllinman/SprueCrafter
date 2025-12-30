@@ -73,6 +73,22 @@
             <span>Separate</span>
           </button>
           
+          <button class="nav-btn" data-tab="transform">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+            </svg>
+            <span>Transform</span>
+          </button>
+          
+          <button class="nav-btn" data-tab="supports">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="2" x2="12" y2="22"></line>
+              <path d="M5 12H2a10 10 0 0 0 20 0h-3"></path>
+              <polyline points="8 15 12 19 16 15"></polyline>
+            </svg>
+            <span>Supports</span>
+          </button>
+          
           <button class="nav-btn" data-tab="sprue">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="10"></circle>
@@ -178,6 +194,83 @@
           <div id="parts-list" class="parts-list hidden"></div>
         </div>
 
+        <!-- Transform Tab -->
+        <div class="tab-content" id="transform-tab">
+          <h2>Transform Model</h2>
+          <p>Apply transformations to your 3D model.</p>
+          
+          <div class="transform-section">
+            <h3>Rotate</h3>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Axis:</label>
+                <select id="rotate-axis" class="form-control">
+                  <option value="x">X-Axis</option>
+                  <option value="y">Y-Axis</option>
+                  <option value="z">Z-Axis</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Angle (degrees):</label>
+                <input type="number" id="rotate-angle" class="form-control" value="90" step="15">
+              </div>
+            </div>
+            <button class="btn-secondary" id="rotate-model-btn">Rotate Model</button>
+          </div>
+          
+          <div class="transform-section">
+            <h3>Translate</h3>
+            <div class="form-row">
+              <div class="form-group">
+                <label>X (mm):</label>
+                <input type="number" id="translate-x" class="form-control" value="0" step="1">
+              </div>
+              <div class="form-group">
+                <label>Y (mm):</label>
+                <input type="number" id="translate-y" class="form-control" value="0" step="1">
+              </div>
+              <div class="form-group">
+                <label>Z (mm):</label>
+                <input type="number" id="translate-z" class="form-control" value="0" step="1">
+              </div>
+            </div>
+            <button class="btn-secondary" id="translate-model-btn">Translate Model</button>
+          </div>
+          
+          <div id="transform-status" class="status-message"></div>
+        </div>
+
+        <!-- Supports Tab -->
+        <div class="tab-content" id="supports-tab">
+          <h2>Generate Supports</h2>
+          <p>Add support structures for 3D printing.</p>
+          
+          <div class="form-group">
+            <label>Support Mode:</label>
+            <select id="support-mode" class="form-control">
+              <option value="automatic">Automatic</option>
+              <option value="estimate">Estimate Only</option>
+            </select>
+          </div>
+          
+          <div id="automatic-supports-options">
+            <div class="form-group">
+              <label>Overhang Angle (degrees):</label>
+              <input type="number" id="overhang-angle" class="form-control" value="45" min="0" max="90" step="5">
+              <small>Surfaces exceeding this angle from vertical will get supports</small>
+            </div>
+            <div class="form-group">
+              <label>Support Density (mm):</label>
+              <input type="number" id="support-density" class="form-control" value="5" min="2" max="20" step="1">
+              <small>Minimum spacing between support points</small>
+            </div>
+          </div>
+          
+          <button class="btn-primary" id="generate-supports-btn">Generate Supports</button>
+          <div id="supports-status" class="status-message"></div>
+          <div id="supports-info" class="info-box hidden"></div>
+        </div>
+
         <!-- Sprue Tab -->
         <div class="tab-content" id="sprue-tab">
           <h2>Generate Sprue</h2>
@@ -185,10 +278,23 @@
             <label>Printer Profile:</label>
             <select id="printer-profile" class="form-control">
               <option value="elegoo_mars_3">Elegoo Mars 3</option>
+              <option value="elegoo_saturn">Elegoo Saturn</option>
+              <option value="elegoo_saturn_2">Elegoo Saturn 2</option>
+              <option value="elegoo_jupiter">Elegoo Jupiter</option>
               <option value="anycubic_photon_mono_4k">Anycubic Photon Mono 4K</option>
               <option value="phrozen_sonic_mighty_4k">Phrozen Sonic Mighty 4K</option>
               <option value="creality_halot_one">Creality Halot One</option>
               <option value="custom">Custom</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Connector Type:</label>
+            <select id="connector-type" class="form-control">
+              <option value="cylindrical">Cylindrical (Standard)</option>
+              <option value="pyramid">Pyramid</option>
+              <option value="triangular">Triangular</option>
+              <option value="square">Square</option>
+              <option value="spherical">Spherical</option>
             </select>
           </div>
           <div id="custom-build-plate" class="hidden">

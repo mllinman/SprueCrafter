@@ -23,18 +23,27 @@ class SprueGenerator:
         self.gate_height = 2.0      # Height of gate connection
         self.part_spacing = 5.0     # Minimum spacing between parts
         self.border_margin = 5.0    # Margin from build plate edge
+        
+        # Available connector types
+        self.connector_types = [
+            'cylindrical', 'pyramid', 'triangular', 'square', 'spherical'
+        ]
     
-    def generate(self, input_path, build_plate_size=(192, 120, 245)):
+    def generate(self, input_path, build_plate_size=(192, 120, 245), connector_type='cylindrical'):
         """
         Generate optimized sprue layout
         
         Args:
             input_path: Path to 3D model or parts
             build_plate_size: (x, y, z) dimensions in mm
+            connector_type: Type of connector ('cylindrical', 'pyramid', 'triangular', 'square', 'spherical')
         
         Returns:
             Path to generated sprue file
         """
+        # Validate connector type
+        if connector_type not in self.connector_types:
+            connector_type = 'cylindrical'
         # Load model/parts
         scene = trimesh.load(input_path)
         
@@ -53,8 +62,8 @@ class SprueGenerator:
         # Arrange parts on build plate
         arranged_parts = self._arrange_parts(parts, build_plate_size)
         
-        # Generate runners and gates
-        sprue_mesh = self._create_sprue_structure(arranged_parts, build_plate_size)
+        # Generate runners and gates with specified connector type
+        sprue_mesh = self._create_sprue_structure(arranged_parts, build_plate_size, connector_type)
         
         # Combine everything
         final_mesh = self._combine_parts_and_sprue(arranged_parts, sprue_mesh)
@@ -131,10 +140,15 @@ class SprueGenerator:
         
         return arranged
     
-    def _create_sprue_structure(self, arranged_parts, build_plate_size):
+    def _create_sprue_structure(self, arranged_parts, build_plate_size, connector_type='cylindrical'):
         """
-        Create runner and gate system
+        Create runner and gate system with customizable connectors
         Professional-quality sprue structure
+        
+        Args:
+            arranged_parts: List of arranged part information
+            build_plate_size: Build plate dimensions
+            connector_type: Type of connector shape
         """
         plate_x, plate_y, _ = build_plate_size
         
@@ -181,33 +195,12 @@ class SprueGenerator:
                 self.gate_height
             ])
             
-            # Create gate cylinder
+            # Create gate with specified connector type
             gate_length = np.linalg.norm(gate_end - gate_start)
             if gate_length > 0:
-                gate = trimesh.creation.cylinder(
-                    radius=self.gate_diameter / 2,
-                    height=gate_length,
-                    sections=12
+                gate = self._create_connector(
+                    gate_start, gate_end, connector_type
                 )
-                
-                # Orient gate
-                direction = gate_end - gate_start
-                direction = direction / np.linalg.norm(direction)
-                
-                # Rotation to align with direction
-                default_dir = np.array([0, 0, 1])
-                rotation_axis = np.cross(default_dir, direction)
-                
-                if np.linalg.norm(rotation_axis) > 0.001:
-                    rotation_axis = rotation_axis / np.linalg.norm(rotation_axis)
-                    angle = np.arccos(np.dot(default_dir, direction))
-                    rotation = trimesh.transformations.rotation_matrix(
-                        angle, rotation_axis
-                    )
-                    gate.apply_transform(rotation)
-                
-                # Position gate
-                gate.apply_translation((gate_start + gate_end) / 2)
                 gate_meshes.append(gate)
         
         # Combine all sprue elements
@@ -217,6 +210,133 @@ class SprueGenerator:
             sprue_mesh = gate_meshes[0]
         
         return sprue_mesh
+    
+    def _create_connector(self, start_pos, end_pos, connector_type='cylindrical'):
+        """
+        Create a connector of specified type between two points
+        
+        Args:
+            start_pos: Starting position (numpy array)
+            end_pos: Ending position (numpy array)
+            connector_type: Type of connector shape
+        
+        Returns:
+            Trimesh object of the connector
+        """
+        length = np.linalg.norm(end_pos - start_pos)
+        if length < 0.001:
+            # Too short, return minimal cylinder
+            return trimesh.creation.cylinder(
+                radius=self.gate_diameter / 2,
+                height=0.1,
+                sections=8
+            )
+        
+        # Create connector based on type
+        if connector_type == 'pyramid':
+            connector = self._create_pyramid_connector(length)
+        elif connector_type == 'triangular':
+            connector = self._create_triangular_connector(length)
+        elif connector_type == 'square':
+            connector = self._create_square_connector(length)
+        elif connector_type == 'spherical':
+            connector = self._create_spherical_connector(length)
+        else:  # cylindrical (default)
+            connector = self._create_cylindrical_connector(length)
+        
+        # Orient connector from start to end
+        direction = end_pos - start_pos
+        direction = direction / np.linalg.norm(direction)
+        
+        # Rotation to align with direction
+        default_dir = np.array([0, 0, 1])
+        rotation_axis = np.cross(default_dir, direction)
+        
+        if np.linalg.norm(rotation_axis) > 0.001:
+            rotation_axis = rotation_axis / np.linalg.norm(rotation_axis)
+            angle = np.arccos(np.clip(np.dot(default_dir, direction), -1.0, 1.0))
+            rotation = trimesh.transformations.rotation_matrix(
+                angle, rotation_axis
+            )
+            connector.apply_transform(rotation)
+        
+        # Position connector at midpoint
+        connector.apply_translation((start_pos + end_pos) / 2)
+        
+        return connector
+    
+    def _create_cylindrical_connector(self, length):
+        """Create a cylindrical connector"""
+        return trimesh.creation.cylinder(
+            radius=self.gate_diameter / 2,
+            height=length,
+            sections=12
+        )
+    
+    def _create_pyramid_connector(self, length):
+        """Create a pyramid-shaped connector"""
+        # Create a pyramid (cone with square base transitioning to point)
+        base_size = self.gate_diameter
+        # Use cone as pyramid approximation
+        return trimesh.creation.cone(
+            radius=base_size / 2,
+            height=length,
+            sections=4  # 4 sections makes it more pyramid-like
+        )
+    
+    def _create_triangular_connector(self, length):
+        """Create a triangular prism connector"""
+        # Create triangular prism
+        base_size = self.gate_diameter
+        # Create vertices for triangular prism
+        height_2d = base_size * np.sqrt(3) / 2
+        vertices = np.array([
+            # Bottom triangle
+            [-base_size/2, -height_2d/3, -length/2],
+            [base_size/2, -height_2d/3, -length/2],
+            [0, height_2d*2/3, -length/2],
+            # Top triangle
+            [-base_size/2, -height_2d/3, length/2],
+            [base_size/2, -height_2d/3, length/2],
+            [0, height_2d*2/3, length/2],
+        ])
+        
+        faces = np.array([
+            # Bottom
+            [0, 2, 1],
+            # Top
+            [3, 4, 5],
+            # Sides
+            [0, 1, 4], [0, 4, 3],
+            [1, 2, 5], [1, 5, 4],
+            [2, 0, 3], [2, 3, 5],
+        ])
+        
+        return trimesh.Trimesh(vertices=vertices, faces=faces)
+    
+    def _create_square_connector(self, length):
+        """Create a square prism connector"""
+        size = self.gate_diameter
+        return trimesh.creation.box(extents=[size, size, length])
+    
+    def _create_spherical_connector(self, length):
+        """Create a spherical connector (series of spheres)"""
+        # Create multiple spheres along the length for a beaded effect
+        num_spheres = max(3, int(length / self.gate_diameter))
+        spheres = []
+        
+        for i in range(num_spheres):
+            z_pos = -length/2 + (i * length / (num_spheres - 1)) if num_spheres > 1 else 0
+            sphere = trimesh.creation.icosphere(
+                subdivisions=2,
+                radius=self.gate_diameter / 2
+            )
+            sphere.apply_translation([0, 0, z_pos])
+            spheres.append(sphere)
+        
+        if len(spheres) > 1:
+            return trimesh.util.concatenate(spheres)
+        return spheres[0]
     
     def _combine_parts_and_sprue(self, arranged_parts, sprue_mesh):
         """Combine all parts with sprue structure"""
