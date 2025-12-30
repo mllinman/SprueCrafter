@@ -217,15 +217,17 @@ python -m pytest tests/
 
 ## Future Enhancements
 
-Potential features for future versions:
-- Advanced photogrammetry integration (COLMAP, Meshroom)
-- Machine learning for part classification
-- Automated support generation
-- Multi-material support
-- Cloud processing
-- Model marketplace integration
-- Advanced mesh repair tools
-- Texture mapping support
+For a comprehensive list of planned features and improvements, see **[FUTURE_IMPROVEMENTS.md](../FUTURE_IMPROVEMENTS.md)** in the root directory.
+
+This document includes detailed roadmap items such as:
+- Advanced support features (tree supports, paint-on supports)
+- Island detection and analysis
+- Advanced hollowing and mesh repair tools
+- Flow simulation and structural analysis
+- AI-powered optimization
+- Parametric design and CAM integration
+- Cloud collaboration features
+- And 40+ more feature categories from competitive analysis
 
 ## License
 
