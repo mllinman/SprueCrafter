@@ -27,6 +27,7 @@ from stripe_utils import (
     handle_invoice_payment_succeeded,
     handle_invoice_payment_failed
 )
+from subscription_limits import get_user_usage, get_user_plan_limits
 
 # Initialize Flask app
 app = Flask(__name__, 
@@ -155,11 +156,17 @@ def subscription_status():
         if not user:
             return jsonify({'error': 'User not found'}), 404
         
+        # Get usage and limits
+        usage = get_user_usage(user)
+        limits = get_user_plan_limits(user)
+        
         return jsonify({
             'plan': user.plan,
             'status': user.subscription_status,
             'period_end': user.subscription_period_end.isoformat() if user.subscription_period_end else None,
-            'has_stripe_customer': bool(user.stripe_customer_id)
+            'has_stripe_customer': bool(user.stripe_customer_id),
+            'usage': usage,
+            'limits': limits
         }), 200
         
     except Exception as e:
