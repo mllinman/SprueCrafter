@@ -15,6 +15,9 @@ SprueCrafter is a powerful application that converts 3D object data into 1/35th 
 - **Smart Part Separation**: Automatically separates models into individual components
 - **Intelligent Categorization**: AI-powered part categorization (body, turret, weapons, wheels, details, accessories)
 - **Professional Sprue Generation**: Industry-quality sprue layouts with optimized runners and gates
+- **Customizable Connectors**: Multiple connector types (cylindrical, pyramid, triangular, square, spherical)
+- **Model Transformation Tools**: Rotate, translate, and scale operations for precise positioning
+- **Support Generation**: Automatic and manual support structure generation for 3D printing
 - **Photo-to-3D Conversion**: Create 3D models from photographs using photogrammetry
 - **Resin Printer Compatible**: Works with all mainstream resin printers
 
@@ -30,6 +33,9 @@ SprueCrafter is a powerful application that converts 3D object data into 1/35th 
 
 Pre-configured profiles for popular resin printers:
 - Elegoo Mars 3
+- Elegoo Saturn
+- Elegoo Saturn 2
+- Elegoo Jupiter
 - Anycubic Photon Mono 4K
 - Phrozen Sonic Mighty 4K
 - Creality Halot One
@@ -109,18 +115,40 @@ npm run dev
   - Categorizes parts by type
   - Displays organized parts list
 
-### 5. Generate Sprue
+### 5. Transform Model
+
+- Select **Transform** tab
+- **Rotate**: Choose axis (X, Y, or Z) and angle
+- **Translate**: Set X, Y, Z offset values
+- Apply transformations to position parts optimally
+
+### 6. Generate Supports
+
+- Navigate to **Supports** tab
+- Choose mode:
+  - **Automatic**: Analyzes model and adds supports to overhangs
+  - **Estimate Only**: Shows support requirements without generating
+- Adjust overhang angle (45° default) and density
+- Click **Generate Supports**
+
+### 7. Generate Sprue
 
 - Select **Sprue Gen** tab
-- Choose printer profile or enter custom build plate dimensions
+- Choose printer profile (including Elegoo Saturn/Jupiter) or enter custom dimensions
+- Select connector type:
+  - Cylindrical (standard)
+  - Pyramid
+  - Triangular
+  - Square
+  - Spherical
 - Click **Generate Sprue**
 - System creates:
   - Optimized part layout
-  - Professional runner system
+  - Professional runner system with chosen connector style
   - Connection gates
   - Ready-to-print sprue file
 
-### 6. Photo to 3D Model
+### 8. Photo to 3D Model
 
 - Navigate to **Photo2Model** tab
 - Click **Select Photos**
@@ -128,7 +156,7 @@ npm run dev
 - Click **Generate 3D Model**
 - System processes photos and creates 3D mesh
 
-### 7. 3D Viewer
+### 9. 3D Viewer
 
 - Use **3D Viewer** tab to:
   - Visualize models
@@ -215,6 +243,33 @@ Form Data:
   - build_plate_x: build plate width (mm)
   - build_plate_y: build plate depth (mm)
   - build_plate_z: build plate height (mm)
+  - connector_type: connector shape (cylindrical, pyramid, triangular, square, spherical)
+```
+
+#### Transform Model
+```
+POST /api/transform
+Form Data:
+  - file: 3D model file
+  - operation: rotate, translate, or scale
+  For rotate:
+    - axis: x, y, or z
+    - angle: rotation angle in degrees
+  For translate:
+    - x, y, z: translation in mm
+  For scale:
+    - factor: scale factor
+```
+
+#### Generate Supports
+```
+POST /api/generate-supports
+Form Data:
+  - file: 3D model file
+  - mode: automatic, manual, or estimate
+  - overhang_angle: angle threshold for supports (degrees)
+  - density: spacing between supports (mm)
+  - support_points: JSON array of [x,y,z] for manual mode
 ```
 
 #### Photo to Model
@@ -227,7 +282,13 @@ Form Data:
 #### Printer Profiles
 ```
 GET /api/printer-profiles
-Returns: JSON with available printer profiles
+Returns: JSON with available printer profiles (including Elegoo Saturn, Saturn 2, Jupiter)
+```
+
+#### Connector Types
+```
+GET /api/connector-types
+Returns: JSON with available connector types and descriptions
 ```
 
 ## Building for Production
