@@ -177,6 +177,7 @@ def test_backend_api():
     
     # Test scaling
     print_test("Model scaling (1/35)")
+    scaled_file = None
     try:
         with open(test_file, 'rb') as f:
             files = {'file': f}
@@ -197,6 +198,10 @@ def test_backend_api():
     
     # Test sprue generation
     print_test("Sprue generation")
+    if not scaled_file:
+        print_error("Scaled file not available, skipping sprue generation test")
+        return False
+    
     try:
         with open(scaled_file, 'rb') as f:
             files = {'file': f}
@@ -219,6 +224,10 @@ def test_backend_api():
     
     # Test part separation
     print_test("Part separation")
+    if not scaled_file:
+        print_error("Scaled file not available, skipping part separation test")
+        return False
+    
     try:
         with open(scaled_file, 'rb') as f:
             files = {'file': f}
@@ -282,18 +291,26 @@ def main():
     if not test_core_modules():
         all_tests_passed = False
     
-    # Test backend API (only if backend is running)
+    # Test backend API (only if backend is running or --interactive flag)
     print("\n" + "-"*60)
     print("Note: Backend API tests require the backend to be running")
     print("Start it in another terminal: python src/backend/app.py")
     print("-"*60)
     
-    response = input("\nIs the backend running? (y/n): ").strip().lower()
-    if response == 'y':
-        if not test_backend_api():
-            all_tests_passed = False
+    # Check for non-interactive mode via environment variable
+    import sys
+    non_interactive = os.environ.get('CI') or '--non-interactive' in sys.argv
+    
+    if non_interactive:
+        print_warning("Non-interactive mode: Skipping backend API tests")
+        print("Run with --interactive flag or set backend to test API endpoints")
     else:
-        print_warning("Skipping backend API tests")
+        response = input("\nIs the backend running? (y/n): ").strip().lower()
+        if response == 'y':
+            if not test_backend_api():
+                all_tests_passed = False
+        else:
+            print_warning("Skipping backend API tests")
     
     # Summary
     print_header("Test Summary")

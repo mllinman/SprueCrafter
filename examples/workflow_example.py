@@ -7,6 +7,7 @@ Demonstrates a full end-to-end workflow from model to sprue
 import requests
 import os
 import sys
+import tempfile
 
 BASE_URL = "http://127.0.0.1:5000"
 
@@ -22,7 +23,7 @@ def check_backend():
         if response.status_code == 200:
             print("✅ Backend is running")
             return True
-    except:
+    except requests.exceptions.RequestException:
         pass
     
     print("❌ Backend is not running!")
@@ -57,7 +58,7 @@ def create_sample_model():
         model = trimesh.util.concatenate([body, turret, barrel])
         
         # Save
-        input_file = '/tmp/sample_tank.stl'
+        input_file = os.path.join(tempfile.gettempdir(), 'sample_tank.stl')
         model.export(input_file)
         
         print(f"✅ Sample tank model created: {input_file}")
@@ -89,7 +90,7 @@ def convert_to_stl(input_file):
             )
         
         if response.status_code == 200:
-            output_file = '/tmp/converted.stl'
+            output_file = os.path.join(tempfile.gettempdir(), 'converted.stl')
             with open(output_file, 'wb') as f:
                 f.write(response.content)
             print(f"✅ Converted to STL: {output_file}")
@@ -119,7 +120,7 @@ def scale_to_1_35(input_file):
             )
         
         if response.status_code == 200:
-            output_file = '/tmp/scaled_1-35.stl'
+            output_file = os.path.join(tempfile.gettempdir(), 'scaled_1-35.stl')
             with open(output_file, 'wb') as f:
                 f.write(response.content)
             print(f"✅ Scaled to 1/35: {output_file}")
@@ -200,7 +201,7 @@ def generate_sprue(input_file):
             )
         
         if response.status_code == 200:
-            output_file = '/tmp/final_sprue.stl'
+            output_file = os.path.join(tempfile.gettempdir(), 'final_sprue.stl')
             with open(output_file, 'wb') as f:
                 f.write(response.content)
             
@@ -269,7 +270,7 @@ def main():
         print("="*60)
         print(f"\nFinal sprue file: {sprue_file}")
         print("You can now slice and print this file on your resin printer!")
-        print("\nIntermediate files saved in /tmp/:")
+        print("\nIntermediate files saved in temp directory:")
         print(f"  - Original model: {input_file}")
         print(f"  - Scaled model: {scaled_file}")
         print(f"  - Final sprue: {sprue_file}")
