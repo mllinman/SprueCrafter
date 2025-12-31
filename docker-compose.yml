@@ -83,14 +83,26 @@ services:
       dockerfile: Dockerfile.web
     container_name: sprucecrafter-web
     environment:
-      BACKEND_URL: ${BACKEND_URL:-http://backend:5000}
-      NODE_ENV: ${NODE_ENV:-production}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-sprucecrafter}:${POSTGRES_PASSWORD:-changeme}@db:5432/${POSTGRES_DB:-sprucecrafter}
+      REDIS_URL: redis://:${REDIS_PASSWORD:-changeme}@redis:6379/0
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-key-change-in-production}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-dev-jwt-secret-key}
+      FLASK_ENV: ${FLASK_ENV:-production}
+      STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:-}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STRIPE_PRO_PRICE_ID: ${STRIPE_PRO_PRICE_ID:-}
     volumes:
+      - ./src/backend:/app/src/backend
+      - ./public:/app/public
       - ./src/electron:/app/src/electron
     ports:
       - "3000:3000"
     depends_on:
-      - backend
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - sprucecrafter-network
     restart: unless-stopped

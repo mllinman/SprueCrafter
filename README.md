@@ -4,6 +4,8 @@
 
 SprueCrafter is a powerful application that converts 3D object data into 1/35th scale model sprues optimized for resin 3D printing. It rivals industry-standard quality from manufacturers like Meng and Takom, while providing modern tools for automatic part separation, categorization, and sprue generation.
 
+> **🚀 NEW: Marketing Website & Stripe Integration!** SprueCrafter now features a beautiful marketing website with Stripe-powered subscriptions. Visit the site to learn more and subscribe to Pro for $10/month. See [MARKETING_WEBSITE.md](MARKETING_WEBSITE.md) for setup details.
+
 > **🚀 NEW: SaaS Deployment Ready!** SprueCrafter now supports full SaaS deployment with authentication, database persistence, cloud storage, and horizontal scaling. See [SAAS_README.md](SAAS_README.md) and [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for details.
 
 ![SprueCrafter Banner](assets/banner.png)
@@ -120,6 +122,28 @@ kubectl apply -f k8s-deployment.yaml
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) - Architecture overview
 - [docs/MIGRATION_GUIDE.md](docs/MIGRATION_GUIDE.md) - Migration from desktop
 
+## Subscription Tiers
+
+SprueCrafter offers flexible pricing to suit your needs:
+
+### Free Tier
+- ✅ 10 conversions per month
+- ✅ Basic file format support
+- ✅ 1 GB storage
+- ✅ Community support
+- **Price**: $0/forever
+
+### Pro Tier ($10/month)
+- ✅ **Unlimited** conversions
+- ✅ All file formats
+- ✅ 50 GB storage
+- ✅ Priority support
+- ✅ Advanced sprue generation
+- ✅ Full API access
+- **Price**: $10/month via Stripe
+
+See [MARKETING_WEBSITE.md](MARKETING_WEBSITE.md) for setup instructions and [public/index.html](public/index.html) for the marketing website.
+
 ## SaaS Features
 
 The SaaS version includes enterprise-grade features:
@@ -127,6 +151,7 @@ The SaaS version includes enterprise-grade features:
 - **🔐 Authentication**: JWT-based user authentication with API keys
 - **💾 Database**: PostgreSQL for persistent data storage
 - **☁️ Cloud Storage**: S3-compatible file storage
+- **💳 Payments**: Stripe integration for Pro subscriptions
 - **📊 Monitoring**: Prometheus metrics and health checks
 - **🔄 CI/CD**: Automated build, test, and deployment
 - **⚖️ Scalability**: Horizontal pod autoscaling

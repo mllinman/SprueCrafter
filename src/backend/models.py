@@ -32,6 +32,10 @@ class User(db.Model):
     
     # Subscription/Plan
     plan = db.Column(db.String(20), default='free')  # free, pro, enterprise
+    stripe_customer_id = db.Column(db.String(255), unique=True, index=True)
+    stripe_subscription_id = db.Column(db.String(255), unique=True, index=True)
+    subscription_status = db.Column(db.String(20))  # active, canceled, past_due, etc.
+    subscription_period_end = db.Column(db.DateTime)
     
     # Timestamps
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))

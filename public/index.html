@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SprueCrafter - Professional 3D Model to Sprue Conversion</title>
+    <meta name="description" content="Transform your 3D models into professional-quality sprues for resin 3D printing. Industry-leading sprue generation technology.">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="container nav-container">
+            <div class="nav-brand">
+                <svg class="logo-icon" width="40" height="40" viewBox="0 0 32 32" fill="none">
+                    <rect width="32" height="32" rx="6" fill="#00e5ff"/>
+                    <path d="M16 8L20 14H12L16 8Z" fill="#1a1a1a"/>
+                    <rect x="14" y="14" width="4" height="10" fill="#1a1a1a"/>
+                    <circle cx="10" cy="22" r="2" fill="#1a1a1a"/>
+                    <circle cx="22" cy="22" r="2" fill="#1a1a1a"/>
+                </svg>
+                <span class="brand-name">SprueCrafter</span>
+            </div>
+            <div class="nav-links">
+                <a href="#features" class="nav-link">Features</a>
+                <a href="#pricing" class="nav-link">Pricing</a>
+                <a href="#about" class="nav-link">About</a>
+                <a href="/app" class="btn btn-primary">Launch App</a>
+            </div>
+            <button class="mobile-menu-btn" id="mobile-menu-btn">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-background"></div>
+        <div class="container hero-content">
+            <div class="hero-text">
+                <h1 class="hero-title">
+                    Professional <span class="gradient-text">3D Sprue Generation</span> for Resin Printing
+                </h1>
+                <p class="hero-subtitle">
+                    Transform your 3D models into industry-quality sprues optimized for resin 3D printing. 
+                    Rival manufacturers like Meng and Takom with modern, automated tools.
+                </p>
+                <div class="hero-cta">
+                    <a href="/app" class="btn btn-large btn-primary">Get Started Free</a>
+                    <a href="#features" class="btn btn-large btn-outline">Learn More</a>
+                </div>
+                <div class="hero-stats">
+                    <div class="stat">
+                        <div class="stat-number">10+</div>
+                        <div class="stat-label">File Formats</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number">8</div>
+                        <div class="stat-label">Printer Profiles</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number">100%</div>
+                        <div class="stat-label">Professional Quality</div>
+                    </div>
+                </div>
+            </div>
+            <div class="hero-image">
+                <div class="hero-image-placeholder">
+                    <svg width="100%" height="100%" viewBox="0 0 400 400" fill="none">
+                        <rect x="50" y="50" width="300" height="300" rx="20" fill="url(#heroGradient)" opacity="0.1"/>
+                        <circle cx="200" cy="200" r="80" stroke="#00e5ff" stroke-width="3" fill="none"/>
+                        <path d="M200 140 L220 180 L260 180 L228 208 L240 248 L200 220 L160 248 L172 208 L140 180 L180 180 Z" 
+                              fill="#00e5ff" opacity="0.8"/>
+                        <defs>
+                            <linearGradient id="heroGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#00e5ff;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#00b8cc;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Powerful Features</h2>
+                <p class="section-subtitle">Everything you need for professional sprue generation</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Universal File Support</h3>
+                    <p class="feature-description">Support for STL, OBJ, FBX, 3DS, PLY, GLTF, GLB, DAE and more. Convert between formats effortlessly.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="14" width="7" height="7"></rect>
+                            <rect x="3" y="14" width="7" height="7"></rect>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Smart Part Separation</h3>
+                    <p class="feature-description">AI-powered automatic separation and categorization of model components by type.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="16"></line>
+                            <line x1="8" y1="12" x2="16" y2="12"></line>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Professional Sprues</h3>
+                    <p class="feature-description">Industry-quality sprue layouts with optimized runners, gates, and connector types.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Automatic Supports</h3>
+                    <p class="feature-description">Intelligent support generation for overhangs with customizable density and angles.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                            <line x1="8" y1="21" x2="16" y2="21"></line>
+                            <line x1="12" y1="17" x2="12" y2="21"></line>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Printer Profiles</h3>
+                    <p class="feature-description">Pre-configured profiles for popular resin printers including Elegoo, Anycubic, and Phrozen.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Secure & Private</h3>
+                    <p class="feature-description">Your models are encrypted and private. Enterprise-grade security with JWT authentication.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section class="pricing" id="pricing">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Simple, Transparent Pricing</h2>
+                <p class="section-subtitle">Choose the plan that's right for you</p>
+            </div>
+            <div class="pricing-grid">
+                <!-- Free Tier -->
+                <div class="pricing-card">
+                    <div class="pricing-header">
+                        <h3 class="pricing-title">Free</h3>
+                        <div class="pricing-price">
+                            <span class="price-amount">$0</span>
+                            <span class="price-period">/forever</span>
+                        </div>
+                    </div>
+                    <ul class="pricing-features">
+                        <li class="feature-item">
+                            <svg class="check-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span>10 conversions per month</span>
+                        </li>
+                        <li class="feature-item">
+                            <svg class="check-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span>Basic file format support</span>
+                        </li>
+                        <li class="feature-item">
+                            <svg class="check-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span>1 GB storage</span>
+                        </li>
+                        <li class="feature-item">
+                            <svg class="check-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span>Community support</span>
+                        </li>
+                        <li class="feature-item disabled">
+                            <svg class="x-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                            <span>Advanced features</span>
+                        </li>
+                        <li class="feature-item disabled">
+                            <svg class="x-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                            <span>API access</span>
+                        </li>
+                    </ul>
+                    <a href="/app" class="btn btn-outline btn-full">Get Started</a>
+                </div>
+
+                <!-- Pro Tier -->
+                <div class="pricing-card featured">
+                    <div class="featured-badge">Most Popular</div>
+                    <div class="pricing-header">
+                        <h3 class="pricing-title">Pro</h3>
+                        <div class="pricing-price">
+                            <span class="price-amount">$10</span>
+                            <span class="price-period">/month</span>
+                        </div>
+                    </div>
+                    <ul class="pricing-features">
+                        <li class="feature-item">
+                            <svg class="check-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span><strong>Unlimited</strong> conversions</span>
+                        </li>
+                        <li class="feature-item">
+                            <svg class="check-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span>All file formats</span>
+                        </li>
+                        <li class="feature-item">
+                            <svg class="check-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span>50 GB storage</span>
+                        </li>
+                        <li class="feature-item">
+                            <svg class="check-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span>Priority support</span>
+                        </li>
+                        <li class="feature-item">
+                            <svg class="check-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span>Advanced sprue generation</span>
+                        </li>
+                        <li class="feature-item">
+                            <svg class="check-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span>Full API access</span>
+                        </li>
+                    </ul>
+                    <button class="btn btn-primary btn-full" data-plan="pro">Subscribe Now</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About/Demo Section -->
+    <section class="about" id="about">
+        <div class="container">
+            <div class="about-content">
+                <div class="about-text">
+                    <h2 class="section-title">Professional Quality, Modern Tools</h2>
+                    <p class="about-description">
+                        SprueCrafter brings professional-grade sprue generation to independent creators and small manufacturers. 
+                        Using advanced algorithms and AI-powered categorization, we rival the quality of industry giants like 
+                        Meng and Takom.
+                    </p>
+                    <ul class="about-features">
+                        <li>
+                            <svg class="check-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span>Automated part separation and categorization</span>
+                        </li>
+                        <li>
+                            <svg class="check-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span>Optimized bin packing for efficient layouts</span>
+                        </li>
+                        <li>
+                            <svg class="check-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span>Multiple connector types for different applications</span>
+                        </li>
+                        <li>
+                            <svg class="check-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span>Compatible with all major resin printers</span>
+                        </li>
+                    </ul>
+                    <div class="about-cta">
+                        <a href="/app" class="btn btn-primary">Try It Now</a>
+                        <a href="https://github.com/mllinman/SprueCrafter" class="btn btn-text" target="_blank">
+                            View on GitHub
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                <polyline points="15 3 21 3 21 9"></polyline>
+                                <line x1="10" y1="14" x2="21" y2="3"></line>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+                <div class="about-image">
+                    <div class="about-image-grid">
+                        <div class="grid-item"></div>
+                        <div class="grid-item"></div>
+                        <div class="grid-item"></div>
+                        <div class="grid-item"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <div class="footer-logo">
+                        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                            <rect width="32" height="32" rx="6" fill="#00e5ff"/>
+                            <path d="M16 8L20 14H12L16 8Z" fill="#1a1a1a"/>
+                            <rect x="14" y="14" width="4" height="10" fill="#1a1a1a"/>
+                            <circle cx="10" cy="22" r="2" fill="#1a1a1a"/>
+                            <circle cx="22" cy="22" r="2" fill="#1a1a1a"/>
+                        </svg>
+                        <span>SprueCrafter</span>
+                    </div>
+                    <p class="footer-description">
+                        Professional 3D model to sprue conversion for resin printing.
+                    </p>
+                </div>
+                <div class="footer-links">
+                    <div class="footer-column">
+                        <h4>Product</h4>
+                        <a href="#features">Features</a>
+                        <a href="#pricing">Pricing</a>
+                        <a href="/app">Launch App</a>
+                    </div>
+                    <div class="footer-column">
+                        <h4>Resources</h4>
+                        <a href="https://github.com/mllinman/SprueCrafter" target="_blank">Documentation</a>
+                        <a href="https://github.com/mllinman/SprueCrafter" target="_blank">GitHub</a>
+                        <a href="https://github.com/mllinman/SprueCrafter/issues" target="_blank">Support</a>
+                    </div>
+                    <div class="footer-column">
+                        <h4>Legal</h4>
+                        <a href="#">Privacy Policy</a>
+                        <a href="#">Terms of Service</a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 SprueCrafter. Licensed under MIT License.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/main.js"></script>
+</body>
+</html>
