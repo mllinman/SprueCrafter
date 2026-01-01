@@ -51,9 +51,9 @@ Pre-configured profiles for popular resin printers:
 
 #### Prerequisites
 
-- **Node.js** (v16 or higher)
-- **Python** (v3.8 or higher)
-- **Git**
+- **Node.js** (v20 or higher) - [Download here](https://nodejs.org/)
+- **Python** (v3.9 or higher) - [Download here](https://www.python.org/)
+- **Git** - [Download here](https://git-scm.com/)
 
 #### Setup Instructions
 

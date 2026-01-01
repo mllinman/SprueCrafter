@@ -36,8 +36,8 @@ def check_dependencies():
     print_test("Python version")
     version = sys.version
     print(f"   Found: {version}")
-    if sys.version_info < (3, 8):
-        print_error("Python 3.8 or higher required")
+    if sys.version_info < (3, 9):
+        print_error("Python 3.9 or higher required")
         return False
     print_success("Python version OK")
     
