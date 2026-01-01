@@ -40,15 +40,39 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB max file size
 
 # Allowed file extensions
-ALLOWED_EXTENSIONS = {
-    'stl', 'obj', 'fbx', '3ds', 'ply', 'gltf', 'glb', 'dae',
+ALLOWED_3D_FORMATS = {
+    'stl', 'obj', 'fbx', '3ds', 'ply', 'gltf', 'glb', 'dae'
+}
+
+ALLOWED_IMAGE_FORMATS = {
     'jpg', 'jpeg', 'png', 'bmp', 'tiff'
 }
 
+ALLOWED_EXTENSIONS = ALLOWED_3D_FORMATS | ALLOWED_IMAGE_FORMATS
 
-def allowed_file(filename):
-    """Check if file extension is allowed"""
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+# Default scale values
+DEFAULT_SCALE = 1/35  # 1/35 scale for armor models
+
+
+def allowed_file(filename, file_types='all'):
+    """
+    Check if file extension is allowed
+    
+    Args:
+        filename: Name of the file to check
+        file_types: Type of files to allow ('3d', 'image', or 'all')
+    """
+    if '.' not in filename:
+        return False
+    
+    ext = filename.rsplit('.', 1)[1].lower()
+    
+    if file_types == '3d':
+        return ext in ALLOWED_3D_FORMATS
+    elif file_types == 'image':
+        return ext in ALLOWED_IMAGE_FORMATS
+    else:
+        return ext in ALLOWED_EXTENSIONS
 
 
 def handle_errors(f):
@@ -97,8 +121,8 @@ def convert_file():
     if file.filename == '':
         return jsonify({'error': 'No file selected'}), 400
     
-    if not allowed_file(file.filename):
-        return jsonify({'error': 'File type not allowed'}), 400
+    if not allowed_file(file.filename, '3d'):
+        return jsonify({'error': 'File type not allowed. Must be a 3D model format.'}), 400
     
     target_format = request.form.get('format', 'stl').lower()
     
@@ -132,11 +156,11 @@ def scale_model():
     if file.filename == '':
         return jsonify({'error': 'No file selected'}), 400
     
-    if not allowed_file(file.filename):
-        return jsonify({'error': 'File type not allowed'}), 400
+    if not allowed_file(file.filename, '3d'):
+        return jsonify({'error': 'File type not allowed. Must be a 3D model format.'}), 400
     
     try:
-        scale = float(request.form.get('scale', 1/35))
+        scale = float(request.form.get('scale', DEFAULT_SCALE))
         if scale <= 0 or scale > 1000:
             return jsonify({'error': 'Scale must be between 0 and 1000'}), 400
     except ValueError:
@@ -173,7 +197,7 @@ def separate_parts():
     if file.filename == '':
         return jsonify({'error': 'No file selected'}), 400
     
-    if not allowed_file(file.filename):
+    if not allowed_file(file.filename, '3d'):
         return jsonify({'error': 'File type not allowed'}), 400
     
     logger.info(f"Separating parts in {file.filename}")
@@ -203,7 +227,7 @@ def generate_sprue():
     if file.filename == '':
         return jsonify({'error': 'No file selected'}), 400
     
-    if not allowed_file(file.filename):
+    if not allowed_file(file.filename, '3d'):
         return jsonify({'error': 'File type not allowed'}), 400
     
     try:
@@ -260,8 +284,8 @@ def photo_to_model():
     photo_paths = []
     
     for file in files:
-        if not allowed_file(file.filename):
-            return jsonify({'error': f'File type not allowed: {file.filename}'}), 400
+        if not allowed_file(file.filename, 'image'):
+            return jsonify({'error': f'File type not allowed: {file.filename}. Must be an image format.'}), 400
         
         photo_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
         file.save(photo_path)
@@ -290,7 +314,7 @@ def transform_model():
     if file.filename == '':
         return jsonify({'error': 'No file selected'}), 400
     
-    if not allowed_file(file.filename):
+    if not allowed_file(file.filename, '3d'):
         return jsonify({'error': 'File type not allowed'}), 400
     
     operation = request.form.get('operation', 'rotate').lower()
@@ -365,7 +389,7 @@ def generate_supports():
     if file.filename == '':
         return jsonify({'error': 'No file selected'}), 400
     
-    if not allowed_file(file.filename):
+    if not allowed_file(file.filename, '3d'):
         return jsonify({'error': 'File type not allowed'}), 400
     
     mode = request.form.get('mode', 'automatic').lower()
