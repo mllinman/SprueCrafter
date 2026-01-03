@@ -21,7 +21,7 @@ from datetime import datetime, timezone
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from config import get_config
-from models import db, User, File, ProcessingJob, ApiUsage
+from models import db, User, File, ProcessingJob, ApiUsage, MarketplaceItem, PrinterProfile
 from auth import token_required, api_key_required, optional_auth, admin_required
 
 # Import existing core modules
@@ -134,14 +134,14 @@ def health_check():
 def info():
     """API information endpoint"""
     return jsonify({
-        'name': 'SprueCrafter API',
-        'version': '2.0.0',
-        'description': 'Professional 3D Model to Sprue Conversion Tool for Resin Printing',
+        'name': 'SprueCrafter Professional API',
+        'version': '2.1.0',
+        'description': 'Professional 3D Model Automation & SaaS Platform',
         'features': {
             'authentication': True,
-            'file_upload': True,
-            'cloud_storage': config.USE_S3,
-            'rate_limiting': config.RATELIMIT_ENABLED
+            'marketplace': True,
+            'subscriptions': True,
+            'cloud_storage': config.USE_S3
         }
     })
 
@@ -244,8 +244,58 @@ def refresh():
 @app.route('/api/auth/me', methods=['GET'])
 @token_required
 def get_current_user():
-    """Get current user information"""
-    return jsonify(g.current_user.to_dict())
+    """Get current user information and settings"""
+    user_dict = g.current_user.to_dict()
+    # Include pro status explicitly
+    user_dict['is_pro'] = g.current_user.plan == 'pro'
+    return jsonify(user_dict)
+
+
+@app.route('/api/auth/profile', methods=['PUT'])
+@token_required
+def update_profile():
+    """Update user profile information"""
+    data = request.get_json()
+    user = g.current_user
+    
+    fields = ['first_name', 'last_name', 'company', 'bio', 'industry', 'location', 'website', 'workspace_color']
+    for field in fields:
+        if field in data:
+            setattr(user, field, data[field])
+    
+    db.session.commit()
+    return jsonify(user.to_dict())
+
+
+@app.route('/api/auth/google', methods=['POST'])
+def google_login():
+    """Handle Google Login (Exchange token for JWT)"""
+    # This would typically verify the Google ID token and find/create user
+    # Mock implementation for integration
+    data = request.get_json()
+    google_id = data.get('google_id')
+    email = data.get('email')
+    
+    user = User.query.filter_by(google_id=google_id).first()
+    if not user:
+        user = User.query.filter_by(email=email).first()
+        if user:
+            user.google_id = google_id
+        else:
+            # Create new user
+            user = User(
+                username=email.split('@')[0], 
+                email=email, 
+                google_id=google_id,
+                email_verified=True
+            )
+            db.session.add(user)
+    
+    user.last_login = datetime.now(timezone.utc)
+    db.session.commit()
+    
+    access_token = create_access_token(identity=user.id)
+    return jsonify({'access_token': access_token, 'user': user.to_dict()})
 
 
 @app.route('/api/auth/api-key', methods=['POST'])
@@ -360,43 +410,104 @@ def get_connector_types():
 
 
 @app.route('/api/printer-profiles', methods=['GET'])
+@optional_auth
 def get_printer_profiles():
-    """Get available resin printer profiles"""
+    """Get available resin printer profiles (Standard + Custom)"""
     profiles = {
-        'elegoo_mars_3': {
-            'name': 'Elegoo Mars 3',
-            'build_volume': {'x': 143.43, 'y': 89.6, 'z': 175}
-        },
-        'elegoo_saturn': {
-            'name': 'Elegoo Saturn',
-            'build_volume': {'x': 192, 'y': 120, 'z': 200}
-        },
-        'elegoo_saturn_2': {
-            'name': 'Elegoo Saturn 2',
-            'build_volume': {'x': 218.88, 'y': 122.88, 'z': 250}
-        },
-        'elegoo_jupiter': {
-            'name': 'Elegoo Jupiter',
-            'build_volume': {'x': 277.848, 'y': 156.096, 'z': 300}
-        },
-        'anycubic_photon_mono_4k': {
-            'name': 'Anycubic Photon Mono 4K',
-            'build_volume': {'x': 132, 'y': 80, 'z': 165}
-        },
-        'phrozen_sonic_mighty_4k': {
-            'name': 'Phrozen Sonic Mighty 4K',
-            'build_volume': {'x': 200, 'y': 125, 'z': 220}
-        },
-        'creality_halot_one': {
-            'name': 'Creality Halot One',
-            'build_volume': {'x': 127, 'y': 80, 'z': 160}
-        },
-        'custom': {
-            'name': 'Custom Printer',
-            'build_volume': {'x': 192, 'y': 120, 'z': 245}
-        }
+        'elegoo_mars_3': {'name': 'Elegoo Mars 3', 'build_volume': {'x': 143.43, 'y': 89.6, 'z': 175}},
+        'elegoo_saturn': {'name': 'Elegoo Saturn', 'build_volume': {'x': 192, 'y': 120, 'z': 200}},
+        'elegoo_saturn_2': {'name': 'Elegoo Saturn 2', 'build_volume': {'x': 218.88, 'y': 122.88, 'z': 250}},
+        'elegoo_jupiter': {'name': 'Elegoo Jupiter', 'build_volume': {'x': 277.848, 'y': 156.096, 'z': 300}},
+        'anycubic_photon_mono_4k': {'name': 'Anycubic Photon Mono 4K', 'build_volume': {'x': 132, 'y': 80, 'z': 165}},
+        'phrozen_sonic_mighty_4k': {'name': 'Phrozen Sonic Mighty 4K', 'build_volume': {'x': 200, 'y': 125, 'z': 220}},
+        'creality_halot_one': {'name': 'Creality Halot One', 'build_volume': {'x': 127, 'y': 80, 'z': 160}}
     }
+    
+    # Add custom user profiles if authenticated
+    if g.current_user:
+        custom_printers = PrinterProfile.query.filter_by(user_id=g.current_user.id).all()
+        for p in custom_printers:
+            profiles[f'custom_{p.id}'] = p.to_dict()
+            
     return jsonify(profiles)
+
+
+@app.route('/api/printer-profiles', methods=['POST'])
+@token_required
+def add_custom_printer():
+    """Add a custom printer profile"""
+    data = request.get_json()
+    new_printer = PrinterProfile(
+        user_id=g.current_user.id,
+        name=data['name'],
+        build_volume_x=data['x'],
+        build_volume_y=data['y'],
+        build_volume_z=data['z']
+    )
+    db.session.add(new_printer)
+    db.session.commit()
+    return jsonify(new_printer.to_dict()), 201
+
+
+# ==================== Marketplace Endpoints ====================
+
+@app.route('/api/marketplace/items', methods=['GET'])
+def list_marketplace_items():
+    """List items available in the marketplace"""
+    items = MarketplaceItem.query.filter_by(status='active').all()
+    return jsonify([i.to_dict() for i in items])
+
+
+@app.route('/api/marketplace/upload', methods=['POST'])
+@token_required
+def upload_to_marketplace():
+    """Seller uploads a model to the marketplace"""
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file provided'}), 400
+        
+    file = request.files['file']
+    title = request.form.get('title')
+    price = float(request.form.get('price', 0.0))
+    description = request.form.get('description', '')
+    
+    # Save file and create record
+    path = os.path.join(config.UPLOAD_FOLDER, file.filename)
+    file.save(path)
+    
+    file_record = File(
+        user_id=g.current_user.id,
+        filename=file.filename,
+        original_filename=file.filename,
+        storage_path=path,
+        status='processed'
+    )
+    db.session.add(file_record)
+    db.session.flush()
+    
+    item = MarketplaceItem(
+        seller_id=g.current_user.id,
+        file_id=file_record.id,
+        title=title,
+        description=description,
+        price=price,
+        status='active'
+    )
+    db.session.add(item)
+    db.session.commit()
+    
+    return jsonify(item.to_dict()), 201
+
+
+@app.route('/api/share/friends', methods=['POST'])
+@token_required
+def share_with_friends():
+    """Send part/model link to friends (Mock Implementation)"""
+    data = request.get_json()
+    emails = data.get('emails', [])
+    file_id = data.get('file_id')
+    
+    # In production, this would send emails with signed download links
+    return jsonify({'message': f'Successfully shared with {len(emails)} friends!'})
 
 
 # ==================== Admin Endpoints ====================

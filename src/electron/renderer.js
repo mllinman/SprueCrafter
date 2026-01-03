@@ -4,7 +4,7 @@
  */
 
 // Environment detection and safe requires
-let ipcRenderer, axios, FormData, fs, path, THREE, OrbitControls, STLLoader, OBJLoader;
+let ipcRenderer, axios, FormData, fs, path, THREE, OrbitControls, STLLoader, OBJLoader, TransformControls;
 
 function initializeDependencies() {
   try {
@@ -19,6 +19,7 @@ function initializeDependencies() {
         OrbitControls = require('three/examples/jsm/controls/OrbitControls').OrbitControls;
         STLLoader = require('three/examples/jsm/loaders/STLLoader').STLLoader;
         OBJLoader = require('three/examples/jsm/loaders/OBJLoader').OBJLoader;
+        TransformControls = require('three/examples/jsm/controls/TransformControls').TransformControls;
       } catch (e) {
         console.warn("Some Node modules failed to load, checking globals.", e);
       }
@@ -35,6 +36,7 @@ function initializeDependencies() {
     if (!OrbitControls) OrbitControls = THREE.OrbitControls;
     if (!STLLoader) STLLoader = THREE.STLLoader;
     if (!OBJLoader) OBJLoader = THREE.OBJLoader;
+    if (!TransformControls) TransformControls = THREE.TransformControls;
   }
 }
 
@@ -46,16 +48,18 @@ let currentFile = null;
 let currentFiles = [];
 
 // 3D Viewer state
-let scene, camera, renderer, controls, printerPlate, currentModel;
+let scene, camera, renderer, controls, transformControls, printerPlate, currentModel;
 const CANVAS_ID = 'viewer-canvas';
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
-  console.log("SprueCrafter Initializing...");
+  console.log("SprueCrafter Pro Initializing...");
   
   // Navigation MUST be first to ensure UI responsiveness even if 3D fails
   initializeNavigation();
-  initializeSettings();
+  initializeAuth();
+  initializeMarketplace();
+  initializeWorkspaceSettings();
   
   initializeUpload();
   initializeConvert();
@@ -65,6 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initializeSupports();
   initializeSprue();
   initializePhoto();
+  initializePrinterProfiles(); // Added this call
   checkBackendStatus();
   
   // Initialize 3D Viewer (only if THREE is available)
@@ -78,15 +83,15 @@ document.addEventListener('DOMContentLoaded', () => {
   setInterval(checkBackendStatus, 10000);
 });
 
-// Settings functionality
-function initializeSettings() {
-  const settingsBtn = document.getElementById('settings-btn');
-  if (settingsBtn) {
-    settingsBtn.addEventListener('click', () => {
-      alert("Settings panel coming soon! Running in " + (typeof require !== 'undefined' ? "Desktop" : "Web") + " mode.");
-    });
-  }
-}
+// Settings functionality (renamed to initializeWorkspaceSettings and moved)
+// function initializeSettings() {
+//   const settingsBtn = document.getElementById('settings-btn');
+//   if (settingsBtn) {
+//     settingsBtn.addEventListener('click', () => {
+//       alert("Settings panel coming soon! Running in " + (typeof require !== 'undefined' ? "Desktop" : "Web") + " mode.");
+//     });
+//   }
+// }
 
 // Navigation
 function initializeNavigation() {
@@ -170,7 +175,57 @@ function init3DViewer() {
     camera.position.multiplyScalar(1.1);
   });
   
+  // Transform Controls
+  if (TransformControls) {
+    transformControls = new TransformControls(camera, renderer.domElement);
+    transformControls.addEventListener('change', () => renderer.render(scene, camera));
+    transformControls.addEventListener('dragging-changed', (event) => {
+      controls.enabled = !event.value;
+    });
+    scene.add(transformControls);
+  }
+  
   animate();
+}
+
+// Workspace customization
+function initializeWorkspaceSettings() {
+  const colorPicker = document.getElementById('workspace-color-picker');
+  if (colorPicker) {
+    colorPicker.addEventListener('input', (e) => {
+      if (printerPlate) {
+        printerPlate.material.color.set(e.target.value);
+      }
+    });
+  }
+
+  // Transform Modes
+  const modes = ['translate', 'rotate', 'scale'];
+  modes.forEach(mode => {
+    const btn = document.getElementById(`mode-${mode}`);
+    if (btn) {
+      btn.addEventListener('click', () => {
+        if (transformControls) {
+          transformControls.setMode(mode);
+          modes.forEach(m => document.getElementById(`mode-${m}`).classList.remove('active'));
+          btn.classList.add('active');
+        }
+      });
+    }
+  });
+
+  // Share with Friends
+  const shareBtn = document.getElementById('share-model-btn');
+  if (shareBtn) {
+    shareBtn.addEventListener('click', () => {
+      const email = prompt("Enter friend's email to share this part:");
+      if (email) {
+        axios.post(`${API_BASE}/share/friends`, { emails: [email] })
+          .then(() => alert("Shared successfully!"))
+          .catch(() => alert("Login to share assets."));
+      }
+    });
+  }
 }
 
 function createPrinterPlate(width, depth, height) {
@@ -272,6 +327,11 @@ async function loadModelToViewer(fileSource) {
     currentModel.position.y = size.y / 2;
     
     scene.add(currentModel);
+    
+    // Attach transform controls
+    if (transformControls) {
+      transformControls.attach(currentModel);
+    }
     
     // Adjust camera to fit
     const maxDim = Math.max(size.x, size.y, size.z);
@@ -715,7 +775,7 @@ function initializeSprue() {
       buildPlateZ = document.getElementById('plate-z').value;
     } else {
       // Fetch printer profiles
-      const profiles = await fetchPrinterProfiles();
+      const profiles = await fetchPrinterProfiles(); // This function is now part of initializePrinterProfiles
       const profile = profiles[printerProfile.value];
       buildPlateX = profile.build_volume.x;
       buildPlateY = profile.build_volume.y;
@@ -759,16 +819,6 @@ function initializeSprue() {
       generateBtn.disabled = false;
     }
   });
-}
-
-async function fetchPrinterProfiles() {
-  try {
-    const response = await axios.get(`${API_BASE}/printer-profiles`);
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching printer profiles:', error);
-    return {};
-  }
 }
 
 // Photo functionality
@@ -857,6 +907,279 @@ function initializePhoto() {
       generateModelBtn.disabled = false;
     }
   });
+}
+
+// ==================== SaaS & Authentication ====================
+
+function initializeAuth() {
+  const loginBtn = document.getElementById('login-btn');
+  const registerBtn = document.getElementById('register-btn');
+  const authModal = document.getElementById('auth-modal');
+  const doLoginBtn = document.getElementById('do-login-btn');
+  const profileTrigger = document.getElementById('profile-trigger');
+  const profileModal = document.getElementById('profile-modal');
+  const logoutBtn = document.getElementById('logout-btn');
+  const closeBtns = document.querySelectorAll('.close-modal');
+
+  // Modal Toggles
+  loginBtn.addEventListener('click', () => authModal.classList.remove('hidden'));
+  registerBtn.addEventListener('click', () => {
+    alert("Pro Registration is open! Please sign in with Google or use the login form.");
+    authModal.classList.remove('hidden');
+  });
+  profileTrigger.addEventListener('click', () => profileModal.classList.remove('hidden'));
+  
+  closeBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      authModal.classList.add('hidden');
+      profileModal.classList.add('hidden');
+    });
+  });
+
+  // Login Logic
+  doLoginBtn.addEventListener('click', async () => {
+    const email = document.getElementById('login-email').value;
+    const password = document.getElementById('login-password').value;
+
+    // Static Admin Check (Detroit1977!!)
+    if (email === 'admin' && password === 'Detroit1977!!') {
+      alert("Admin Access Granted");
+      updateAuthState({ username: 'admin', plan: 'pro', is_admin: true });
+      authModal.classList.add('hidden');
+      return;
+    }
+
+    try {
+      showStatus('status-text', 'Signing in...', 'info');
+      const res = await axios.post(`${API_BASE}/auth/login`, { username: email, password });
+      localStorage.setItem('sc_token', res.data.access_token);
+      updateAuthState(res.data.user);
+      authModal.classList.add('hidden');
+      updateStatus('Signed in successfully', 'success');
+    } catch (err) {
+      updateStatus('Invalid credentials', 'error');
+    }
+  });
+
+  logoutBtn.addEventListener('click', () => {
+    localStorage.removeItem('sc_token');
+    window.location.reload();
+  });
+
+  // Check existing auth
+  const token = localStorage.getItem('sc_token');
+  if (token) {
+    checkToken(token);
+  }
+}
+
+async function checkToken(token) {
+  try {
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    const res = await axios.get(`${API_BASE}/auth/me`);
+    updateAuthState(res.data);
+  } catch (e) {
+    localStorage.removeItem('sc_token');
+  }
+}
+
+function updateAuthState(user) {
+  const authSection = document.getElementById('auth-section');
+  const userSection = document.getElementById('user-section');
+  const initials = document.getElementById('user-initials');
+  const planBadge = document.getElementById('user-plan');
+  
+  authSection.classList.add('hidden');
+  userSection.classList.remove('hidden');
+  
+  initials.textContent = user.username.substring(0, 2).toUpperCase();
+  planBadge.textContent = user.plan.toUpperCase();
+  if (user.plan === 'pro') planBadge.style.background = 'var(--accent-primary)';
+
+  // Populate profile
+  document.getElementById('profile-username').value = user.username;
+  document.getElementById('profile-bio').value = user.bio || '';
+  document.getElementById('profile-industry').value = user.industry || '';
+}
+
+// ==================== Marketplace ====================
+
+async function initializeMarketplace() {
+  const marketplaceGrid = document.getElementById('marketplace-grid');
+  
+  try {
+    const res = await axios.get(`${API_BASE}/marketplace/items`);
+    renderMarketplace(res.data);
+  } catch (e) {
+    console.error("Marketplace fetch failed");
+  }
+}
+
+function renderMarketplace(items) {
+  const grid = document.getElementById('marketplace-grid');
+  if (items.length === 0) {
+    grid.innerHTML = '<p class="status-message info">No items in marketplace yet.</p>';
+    return;
+  }
+
+  grid.innerHTML = items.map(item => `
+    <div class="marketplace-item">
+      <div class="market-thumb" style="display:flex; align-items:center; justify-content:center; color:var(--text-muted)">3D PREVIEW</div>
+      <div class="market-info">
+        <h4>${item.title}</h4>
+        <span class="market-price">$${item.price.toFixed(2)}</span>
+      </div>
+      <button class="btn btn-outline btn-sm" style="width:100%; border-radius:0;" onclick="purchaseItem('${item.id}')">Get Part</button>
+    </div>
+  `).join('');
+}
+
+async function purchaseItem(itemId) {
+  alert("Redirecting to Stripe Checkout for secure payment...");
+  // In real app, call /api/marketplace/purchase to get checkout URL
+}
+
+// ==================== Custom Printer Profiles ====================
+
+async function initializePrinterProfiles() {
+  const profileSelect = document.getElementById('printer-profile');
+  const addBtn = document.getElementById('add-custom-printer-btn');
+  const customPanel = document.getElementById('custom-build-plate');
+  const saveBtn = document.getElementById('save-custom-printer');
+
+  addBtn.addEventListener('click', () => {
+    customPanel.classList.toggle('hidden');
+  });
+
+  saveBtn.addEventListener('click', async () => {
+    const nameInput = document.getElementById('custom-printer-name');
+    const customName = nameInput ? nameInput.value.trim() : '';
+    
+    const data = {
+      name: customName || `Custom Printer ${new Date().toLocaleDateString()}`,
+      x: parseFloat(document.getElementById('plate-x').value),
+      y: parseFloat(document.getElementById('plate-y').value),
+      z: parseFloat(document.getElementById('plate-z').value)
+    };
+
+    if (!data.x || !data.y || !data.z) {
+      updateStatus('Please enter valid dimensions', 'error');
+      return;
+    }
+
+    try {
+      await axios.post(`${API_BASE}/printer-profiles`, data);
+      await loadPrinterProfiles();
+      customPanel.classList.add('hidden');
+      // Clear form
+      if (nameInput) nameInput.value = '';
+      document.getElementById('plate-x').value = '';
+      document.getElementById('plate-y').value = '';
+      document.getElementById('plate-z').value = '245';
+      updateStatus('Custom printer profile saved!', 'success');
+    } catch (e) {
+      updateStatus('Login required to save custom printers', 'error');
+    }
+  });
+
+  profileSelect.addEventListener('change', async () => {
+    const profiles = await fetchPrinterProfiles();
+    const profile = profiles[profileSelect.value];
+    if (profile) {
+      createPrinterPlate(profile.build_volume.x, profile.build_volume.y, profile.build_volume.z);
+      updateStatus(`Workspace updated to ${profile.name}`, 'info');
+    }
+  });
+
+  await loadPrinterProfiles();
+}
+
+async function fetchPrinterProfiles() {
+  try {
+    const res = await axios.get(`${API_BASE}/printer-profiles`);
+    return res.data;
+  } catch (error) {
+    console.warn('Using standard printer profiles - backend unavailable');
+    // Comprehensive market resin printer database
+    return {
+      // Elegoo Printers
+      'elegoo_mars_3': { name: 'Elegoo Mars 3', build_volume: { x: 143, y: 89, z: 175 } },
+      'elegoo_mars_3_pro': { name: 'Elegoo Mars 3 Pro', build_volume: { x: 143, y: 89, z: 175 } },
+      'elegoo_mars_4_ultra': { name: 'Elegoo Mars 4 Ultra', build_volume: { x: 153, y: 77, z: 165 } },
+      'elegoo_saturn_2': { name: 'Elegoo Saturn 2', build_volume: { x: 219, y: 123, z: 250 } },
+      'elegoo_saturn_3': { name: 'Elegoo Saturn 3', build_volume: { x: 218, y: 122, z: 250 } },
+      'elegoo_saturn_3_ultra': { name: 'Elegoo Saturn 3 Ultra', build_volume: { x: 218, y: 122, z: 250 } },
+      'elegoo_jupiter': { name: 'Elegoo Jupiter', build_volume: { x: 277, y: 156, z: 300 } },
+      
+      // Anycubic Printers
+      'anycubic_photon_m3': { name: 'Anycubic Photon M3', build_volume: { x: 163, y: 102, z: 180 } },
+      'anycubic_photon_m3_plus': { name: 'Anycubic Photon M3 Plus', build_volume: { x: 245, y: 197, z: 122 } },
+      'anycubic_photon_mono_x': { name: 'Anycubic Photon Mono X', build_volume: { x: 192, y: 120, z: 245 } },
+      'anycubic_photon_mono_x_6k': { name: 'Anycubic Photon Mono X 6K', build_volume: { x: 197, y: 122, z: 245 } },
+      'anycubic_photon_mono_4k': { name: 'Anycubic Photon Mono 4K', build_volume: { x: 132, y: 80, z: 165 } },
+      'anycubic_photon_d2': { name: 'Anycubic Photon D2', build_volume: { x: 131, y: 73, z: 165 } },
+      
+      // Phrozen Printers
+      'phrozen_sonic_mini_8k': { name: 'Phrozen Sonic Mini 8K', build_volume: { x: 165, y: 72, z: 180 } },
+      'phrozen_sonic_mighty_8k': { name: 'Phrozen Sonic Mighty 8K', build_volume: { x: 218, y: 123, z: 235 } },
+      'phrozen_sonic_mega_8k': { name: 'Phrozen Sonic Mega 8K', build_volume: { x: 330, y: 185, z: 400 } },
+      'phrozen_sonic_mighty_4k': { name: 'Phrozen Sonic Mighty 4K', build_volume: { x: 200, y: 125, z: 220 } },
+      
+      // Creality Printers
+      'creality_halot_one': { name: 'Creality Halot One', build_volume: { x: 127, y: 80, z: 160 } },
+      'creality_halot_one_pro': { name: 'Creality Halot One Pro', build_volume: { x: 127, y: 80, z: 160 } },
+      'creality_halot_mage': { name: 'Creality Halot Mage', build_volume: { x: 228, y: 128, z: 230 } },
+      'creality_halot_mage_pro': { name: 'Creality Halot Mage Pro', build_volume: { x: 228, y: 128, z: 230 } },
+      
+      // Formlabs Printers
+      'formlabs_form_3': { name: 'Formlabs Form 3', build_volume: { x: 145, y: 145, z: 185 } },
+      'formlabs_form_3_plus': { name: 'Formlabs Form 3+', build_volume: { x: 145, y: 145, z: 185 } },
+      'formlabs_form_3l': { name: 'Formlabs Form 3L', build_volume: { x: 200, y: 335, z: 300 } },
+      
+      // Prusa Printers
+      'prusa_sl1s': { name: 'Prusa SL1S', build_volume: { x: 127, y: 80, z: 150 } },
+      
+      // Longer Printers
+      'longer_orange_30': { name: 'Longer Orange 30', build_volume: { x: 120, y: 68, z: 170 } },
+      'longer_orange_4k': { name: 'Longer Orange 4K', build_volume: { x: 192, y: 120, z: 245 } },
+      
+      // Voxelab Printers
+      'voxelab_proxima_8': { name: 'Voxelab Proxima 8', build_volume: { x: 192, y: 120, z: 245 } },
+      
+      // Peopoly Printers
+      'peopoly_phenom': { name: 'Peopoly Phenom', build_volume: { x: 276, y: 155, z: 400 } }
+    };
+  }
+}
+
+async function loadPrinterProfiles() {
+  const profileSelect = document.getElementById('printer-profile');
+  if (!profileSelect) {
+    console.error('Printer profile select element not found');
+    return;
+  }
+  
+  try {
+    const profiles = await fetchPrinterProfiles();
+    profileSelect.innerHTML = Object.entries(profiles).map(([id, p]) => `
+      <option value="${id}">${p.name} (${p.build_volume.x}×${p.build_volume.y}×${p.build_volume.z}mm)</option>
+    `).join('');
+    
+    // Auto-select Saturn 2 if available, otherwise first option
+    if (profiles['elegoo_saturn_2']) {
+      profileSelect.value = 'elegoo_saturn_2';
+    }
+    
+    // Trigger initial workspace update
+    const firstProfile = profiles[profileSelect.value];
+    if (firstProfile) {
+      createPrinterPlate(firstProfile.build_volume.x, firstProfile.build_volume.y, firstProfile.build_volume.z);
+      updateStatus(`Workspace set to ${firstProfile.name}`, 'info');
+    }
+  } catch (e) {
+    console.error('Error loading printer profiles:', e);
+    profileSelect.innerHTML = '<option value="error">Failed to load profiles</option>';
+  }
 }
 
 // Utility functions

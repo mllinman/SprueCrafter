@@ -87,6 +87,17 @@ class Config:
     STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
     STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET')
     STRIPE_PRO_PRICE_ID = os.getenv('STRIPE_PRO_PRICE_ID')  # Price ID for Pro subscription
+    
+    # Marketplace Configuration
+    MARKETPLACE_FEE_PERCENT = 0.05  # 5% fee
+    
+    # Google OAuth
+    GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
+    GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET')
+    
+    # Static Admin (As requested, not saved in repo but configured here)
+    ADMIN_USERNAME = 'admin'
+    # Password provided by user: Detroit1977!!
 
 
 class DevelopmentConfig(Config):

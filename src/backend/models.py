@@ -24,18 +24,28 @@ class User(db.Model):
     first_name = db.Column(db.String(50))
     last_name = db.Column(db.String(50))
     company = db.Column(db.String(100))
+    bio = db.Column(db.Text)
+    avatar_url = db.Column(db.String(255))
+    industry = db.Column(db.String(100))
+    location = db.Column(db.String(100))
+    website = db.Column(db.String(255))
     
     # Account status
     is_active = db.Column(db.Boolean, default=True)
     is_admin = db.Column(db.Boolean, default=False)
     email_verified = db.Column(db.Boolean, default=False)
+    google_id = db.Column(db.String(255), unique=True, index=True)
     
     # Subscription/Plan
     plan = db.Column(db.String(20), default='free')  # free, pro, enterprise
     stripe_customer_id = db.Column(db.String(255), unique=True, index=True)
     stripe_subscription_id = db.Column(db.String(255), unique=True, index=True)
+    stripe_connect_id = db.Column(db.String(255), unique=True, index=True)  # For marketplace sellers
     subscription_status = db.Column(db.String(20))  # active, canceled, past_due, etc.
     subscription_period_end = db.Column(db.DateTime)
+    
+    # Workspace Settings
+    workspace_color = db.Column(db.String(7), default='#121212')
     
     # Timestamps
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
@@ -45,6 +55,8 @@ class User(db.Model):
     # Relationships
     files = db.relationship('File', backref='user', lazy='dynamic', cascade='all, delete-orphan')
     jobs = db.relationship('ProcessingJob', backref='user', lazy='dynamic', cascade='all, delete-orphan')
+    marketplace_items = db.relationship('MarketplaceItem', backref='seller', lazy='dynamic', cascade='all, delete-orphan')
+    custom_printers = db.relationship('PrinterProfile', backref='user', lazy='dynamic', cascade='all, delete-orphan')
     
     def set_password(self, password):
         """Hash and set password"""
@@ -68,10 +80,80 @@ class User(db.Model):
             'first_name': self.first_name,
             'last_name': self.last_name,
             'company': self.company,
+            'bio': self.bio,
+            'avatar_url': self.avatar_url,
+            'industry': self.industry,
+            'location': self.location,
+            'website': self.website,
             'plan': self.plan,
             'is_active': self.is_active,
+            'workspace_color': self.workspace_color,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'last_login': self.last_login.isoformat() if self.last_login else None
+        }
+
+
+class MarketplaceItem(db.Model):
+    """Items listed in the marketplace"""
+    __tablename__ = 'marketplace_items'
+    
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    seller_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
+    file_id = db.Column(db.String(36), db.ForeignKey('files.id'), nullable=False)
+    
+    title = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text)
+    price = db.Column(db.Float, default=0.0)  # Price in USD
+    
+    # Statistics
+    views = db.Column(db.Integer, default=0)
+    sales_count = db.Column(db.Integer, default=0)
+    
+    # Status
+    status = db.Column(db.String(20), default='draft')  # draft, active, inactive, reported
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'seller_id': self.seller_id,
+            'file_id': self.file_id,
+            'title': self.title,
+            'description': self.description,
+            'price': self.price,
+            'views': self.views,
+            'sales_count': self.sales_count,
+            'status': self.status,
+            'created_at': self.created_at.isoformat()
+        }
+
+
+class PrinterProfile(db.Model):
+    """Custom printer profiles saved by users"""
+    __tablename__ = 'printer_profiles'
+    
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
+    
+    name = db.Column(db.String(100), nullable=False)
+    build_volume_x = db.Column(db.Float, nullable=False)
+    build_volume_y = db.Column(db.Float, nullable=False)
+    build_volume_z = db.Column(db.Float, nullable=False)
+    
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'build_volume': {
+                'x': self.build_volume_x,
+                'y': self.build_volume_y,
+                'z': self.build_volume_z
+            }
         }
 
 
