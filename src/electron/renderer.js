@@ -1,17 +1,26 @@
 /**
  * SprueCrafter Renderer
- * Handles UI interactions and API communication
+ * Handles UI interactions, API communication, and 3D Visualization
  */
 
 const { ipcRenderer } = require('electron');
 const axios = require('axios');
 const FormData = require('form-data');
 const fs = require('fs');
+const path = require('path');
+const THREE = require('three');
+const { OrbitControls } = require('three/examples/jsm/controls/OrbitControls');
+const { STLLoader } = require('three/examples/jsm/loaders/STLLoader');
+const { OBJLoader } = require('three/examples/jsm/loaders/OBJLoader');
 
 const API_BASE = 'http://127.0.0.1:5000/api';
 
 let currentFile = null;
 let currentFiles = [];
+
+// 3D Viewer state
+let scene, camera, renderer, controls, printerPlate, currentModel;
+const CANVAS_ID = 'viewer-canvas';
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
@@ -25,6 +34,9 @@ document.addEventListener('DOMContentLoaded', () => {
   initializeSprue();
   initializePhoto();
   checkBackendStatus();
+  
+  // Initialize 3D Viewer
+  init3DViewer();
   
   // Check backend status periodically
   setInterval(checkBackendStatus, 10000);
@@ -51,6 +63,170 @@ function initializeNavigation() {
       });
     });
   });
+}
+
+// 3D Viewer Implementation
+function init3DViewer() {
+  const canvas = document.getElementById(CANVAS_ID);
+  const container = canvas.parentElement;
+  
+  // Scene setup
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x050505);
+  
+  // Camera setup
+  camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 2000);
+  camera.position.set(200, 200, 200);
+  
+  // Renderer setup
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setSize(container.clientWidth, container.clientHeight);
+  renderer.setPixelRatio(window.devicePixelRatio);
+  
+  // Controls
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.05;
+  controls.screenSpacePanning = false;
+  controls.minDistance = 10;
+  controls.maxDistance = 1000;
+  controls.maxPolarAngle = Math.PI / 1.5;
+  
+  // Lights
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+  scene.add(ambientLight);
+  
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+  directionalLight.position.set(1, 1, 1);
+  scene.add(directionalLight);
+  
+  const pointLight = new THREE.PointLight(0x00f2ff, 0.5);
+  pointLight.position.set(-100, 200, -100);
+  scene.add(pointLight);
+  
+  // Printer Plate (Build Volume Visualization)
+  createPrinterPlate(192, 120, 245); // Default Saturn size
+  
+  // Handle resize
+  window.addEventListener('resize', onWindowResize);
+  
+  // Extra controls from UI
+  document.getElementById('reset-view-btn').addEventListener('click', () => {
+    controls.reset();
+    camera.position.set(200, 200, 200);
+  });
+  
+  document.getElementById('zoom-in-btn').addEventListener('click', () => {
+    camera.position.multiplyScalar(0.9);
+  });
+  
+  document.getElementById('zoom-out-btn').addEventListener('click', () => {
+    camera.position.multiplyScalar(1.1);
+  });
+  
+  animate();
+}
+
+function createPrinterPlate(width, depth, height) {
+  if (printerPlate) scene.remove(printerPlate);
+  
+  printerPlate = new THREE.Group();
+  
+  // Grid
+  const grid = new THREE.GridHelper(Math.max(width, depth) * 1.5, 20, 0x333333, 0x111111);
+  printerPlate.add(grid);
+  
+  // Plate surface
+  const plateGeom = new THREE.BoxGeometry(width, 2, depth);
+  const plateMat = new THREE.MeshPhongMaterial({ 
+    color: 0x222222, 
+    transparent: true, 
+    opacity: 0.8,
+    shininess: 100
+  });
+  const plateMesh = new THREE.Mesh(plateGeom, plateMat);
+  plateMesh.position.y = -1;
+  printerPlate.add(plateMesh);
+  
+  // Frame/Volume outline
+  const boxGeom = new THREE.BoxGeometry(width, height, depth);
+  const edges = new THREE.EdgesGeometry(boxGeom);
+  const lineMat = new THREE.LineBasicMaterial({ color: 0x00f2ff, transparent: true, opacity: 0.2 });
+  const boxLines = new THREE.LineSegments(edges, lineMat);
+  boxLines.position.y = height / 2;
+  printerPlate.add(boxLines);
+  
+  scene.add(printerPlate);
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+function onWindowResize() {
+  const canvas = document.getElementById(CANVAS_ID);
+  const container = canvas.parentElement;
+  camera.aspect = container.clientWidth / container.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(container.clientWidth, container.clientHeight);
+}
+
+async function loadModelToViewer(filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+  updateStatus(`Loading ${path.basename(filePath)}...`, 'info');
+  
+  if (currentModel) scene.remove(currentModel);
+  
+  try {
+    const loader = ext === '.obj' ? new OBJLoader() : new STLLoader();
+    
+    // Read file as buffer then to ArrayBuffer
+    const buffer = fs.readFileSync(filePath);
+    const arrayBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+    
+    let geometry;
+    let material = new THREE.MeshPhongMaterial({ 
+      color: 0x00f2ff, 
+      specular: 0x111111, 
+      shininess: 200 
+    });
+    
+    if (ext === '.obj') {
+      const text = new TextDecoder().decode(arrayBuffer);
+      const group = loader.parse(text);
+      currentModel = group;
+      
+      // Apply professional material to all children
+      group.traverse(child => {
+        if (child.isMesh) {
+          child.material = material;
+        }
+      });
+    } else {
+      geometry = loader.parse(arrayBuffer);
+      geometry.center();
+      currentModel = new THREE.Mesh(geometry, material);
+    }
+    
+    // Position model on plate
+    const box = new THREE.Box3().setFromObject(currentModel);
+    const size = box.getSize(new THREE.Vector3());
+    currentModel.position.y = size.y / 2;
+    
+    scene.add(currentModel);
+    
+    // Adjust camera to fit
+    const maxDim = Math.max(size.x, size.y, size.z);
+    camera.position.set(maxDim * 2, maxDim * 2, maxDim * 2);
+    controls.target.set(0, size.y / 2, 0);
+    
+    updateStatus('Model loaded in viewport', 'success');
+  } catch (error) {
+    console.error('Loader error:', error);
+    updateStatus(`Error loading model: ${error.message}`, 'error');
+  }
 }
 
 // Upload functionality
@@ -96,25 +272,20 @@ function handleFileUpload(file) {
   
   fileDetails.innerHTML = `
     <div>
-      <label>Filename:</label>
+      <label>Filename</label>
       <span>${file.name}</span>
     </div>
     <div>
-      <label>Size:</label>
+      <label>Size</label>
       <span>${formatFileSize(file.size)}</span>
-    </div>
-    <div>
-      <label>Type:</label>
-      <span>${file.name.split('.').pop().toUpperCase()}</span>
-    </div>
-    <div>
-      <label>Status:</label>
-      <span style="color: var(--accent-success)">Ready</span>
     </div>
   `;
   
   fileInfo.classList.remove('hidden');
   updateStatus('File loaded successfully', 'success');
+  
+  // Load into 3D viewer
+  loadModelToViewer(file.path);
 }
 
 // Convert functionality
@@ -139,7 +310,7 @@ function initializeConvert() {
       
       const response = await axios.post(`${API_BASE}/convert`, formData, {
         headers: formData.getHeaders(),
-        responseType: 'blob'
+        responseType: 'arraybuffer'
       });
       
       // Save converted file
@@ -147,8 +318,13 @@ function initializeConvert() {
         `${currentFile.name.split('.')[0]}_converted.${targetFormat}`);
       
       if (savePath) {
-        fs.writeFileSync(savePath, response.data);
-        showStatus('convert-status', `File converted and saved to ${savePath}`, 'success');
+        fs.writeFileSync(savePath, Buffer.from(response.data));
+        showStatus('convert-status', `File converted and saved`, 'success');
+        
+        // Update viewer if it's a format we support
+        if (['stl', 'obj'].includes(targetFormat)) {
+          loadModelToViewer(savePath);
+        }
       }
     } catch (error) {
       console.error('Conversion error:', error);
@@ -201,15 +377,16 @@ function initializeScale() {
       
       const response = await axios.post(`${API_BASE}/scale`, formData, {
         headers: formData.getHeaders(),
-        responseType: 'blob'
+        responseType: 'arraybuffer'
       });
       
       const savePath = await ipcRenderer.invoke('save-file', 
         `${currentFile.name.split('.')[0]}_scaled.stl`);
       
       if (savePath) {
-        fs.writeFileSync(savePath, response.data);
-        showStatus('scale-status', `Model scaled and saved to ${savePath}`, 'success');
+        fs.writeFileSync(savePath, Buffer.from(response.data));
+        showStatus('scale-status', `Model scaled and saved`, 'success');
+        loadModelToViewer(savePath);
       }
     } catch (error) {
       console.error('Scaling error:', error);
@@ -261,11 +438,11 @@ function displayPartsInfo(data) {
     if (parts.length > 0) {
       html += `
         <div class="part-category">
-          <h4>${category} (${parts.length} parts)</h4>
+          <h4 style="color: var(--accent-primary); margin: 10px 0; font-size: 13px;">${category} (${parts.length})</h4>
           ${parts.map(part => `
-            <div class="part-item">
+            <div class="part-item" style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px; padding:6px; background:rgba(255,255,255,0.05); border-radius:4px;">
               <span>${part.name}</span>
-              <span>${part.vertices} vertices</span>
+              <span style="color: var(--text-muted)">${part.vertices} v</span>
             </div>
           `).join('')}
         </div>
@@ -303,15 +480,16 @@ function initializeTransform() {
       
       const response = await axios.post(`${API_BASE}/transform`, formData, {
         headers: formData.getHeaders(),
-        responseType: 'blob'
+        responseType: 'arraybuffer'
       });
       
       const savePath = await ipcRenderer.invoke('save-file', 
         `${currentFile.name.split('.')[0]}_rotated.stl`);
       
       if (savePath) {
-        fs.writeFileSync(savePath, response.data);
-        showStatus('transform-status', 'Model rotated successfully!', 'success');
+        fs.writeFileSync(savePath, Buffer.from(response.data));
+        showStatus('transform-status', 'Rotated successfully', 'success');
+        loadModelToViewer(savePath);
       }
     } catch (error) {
       console.error('Rotation error:', error);
@@ -344,15 +522,16 @@ function initializeTransform() {
       
       const response = await axios.post(`${API_BASE}/transform`, formData, {
         headers: formData.getHeaders(),
-        responseType: 'blob'
+        responseType: 'arraybuffer'
       });
       
       const savePath = await ipcRenderer.invoke('save-file', 
         `${currentFile.name.split('.')[0]}_translated.stl`);
       
       if (savePath) {
-        fs.writeFileSync(savePath, response.data);
-        showStatus('transform-status', 'Model translated successfully!', 'success');
+        fs.writeFileSync(savePath, Buffer.from(response.data));
+        showStatus('transform-status', 'Translated successfully', 'success');
+        loadModelToViewer(savePath);
       }
     } catch (error) {
       console.error('Translation error:', error);
@@ -379,7 +558,7 @@ function initializeSupports() {
     const density = document.getElementById('support-density').value;
     
     try {
-      showStatus('supports-status', 'Generating supports...', 'info');
+      showStatus('supports-status', 'Working...', 'info');
       generateBtn.disabled = true;
       
       const formData = new FormData();
@@ -390,19 +569,20 @@ function initializeSupports() {
       
       const response = await axios.post(`${API_BASE}/generate-supports`, formData, {
         headers: formData.getHeaders(),
-        responseType: mode === 'estimate' ? 'json' : 'blob'
+        responseType: mode === 'estimate' ? 'json' : 'arraybuffer'
       });
       
       if (mode === 'estimate') {
         displaySupportsInfo(response.data);
-        showStatus('supports-status', 'Support estimation complete', 'success');
+        showStatus('supports-status', 'Estimation complete', 'success');
       } else {
         const savePath = await ipcRenderer.invoke('save-file', 
           `${currentFile.name.split('.')[0]}_with_supports.stl`);
         
         if (savePath) {
-          fs.writeFileSync(savePath, response.data);
-          showStatus('supports-status', 'Supports generated successfully!', 'success');
+          fs.writeFileSync(savePath, Buffer.from(response.data));
+          showStatus('supports-status', 'Supports generated', 'success');
+          loadModelToViewer(savePath);
         }
       }
     } catch (error) {
@@ -418,11 +598,11 @@ function displaySupportsInfo(data) {
   const supportsInfo = document.getElementById('supports-info');
   
   const html = `
-    <h4>Support Estimation</h4>
-    <ul>
-      <li><strong>Number of supports:</strong> ${data.num_supports}</li>
-      <li><strong>Average height:</strong> ${data.avg_height.toFixed(2)} mm</li>
-      <li><strong>Estimated material:</strong> ${data.estimated_material.toFixed(2)} mm³</li>
+    <h4 style="color:var(--accent-primary); font-size:14px; margin-bottom:8px;">Support Estimation</h4>
+    <ul style="list-style:none; font-size:12px; color:var(--text-secondary);">
+      <li>• Count: ${data.num_supports}</li>
+      <li>• Avg height: ${data.avg_height.toFixed(2)} mm</li>
+      <li>• Material: ${data.estimated_material.toFixed(2)} mm³</li>
     </ul>
   `;
   
@@ -480,15 +660,16 @@ function initializeSprue() {
       
       const response = await axios.post(`${API_BASE}/generate-sprue`, formData, {
         headers: formData.getHeaders(),
-        responseType: 'blob'
+        responseType: 'arraybuffer'
       });
       
       const savePath = await ipcRenderer.invoke('save-file', 
         `${currentFile.name.split('.')[0]}_sprue.stl`);
       
       if (savePath) {
-        fs.writeFileSync(savePath, response.data);
-        showStatus('sprue-status', `Sprue generated and saved to ${savePath}`, 'success');
+        fs.writeFileSync(savePath, Buffer.from(response.data));
+        showStatus('sprue-status', `Sprue generated`, 'success');
+        loadModelToViewer(savePath);
       }
     } catch (error) {
       console.error('Sprue generation error:', error);
@@ -521,23 +702,23 @@ function initializePhoto() {
       currentFiles = files;
       
       // Show preview
-      photoPreview.innerHTML = files.map(file => `
-        <img src="${file}" alt="Photo">
-      `).join('');
+      photoPreview.innerHTML = files.slice(0, 8).map(file => `
+        <img src="${file}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px; margin-right: 4px;">
+      `).join('') + (files.length > 8 ? `<span style="font-size:10px">+${files.length-8}</span>` : '');
       
       generateModelBtn.classList.remove('hidden');
-      showStatus('photo-status', `${files.length} photos selected`, 'success');
+      showStatus('photo-status', `${files.length} images selected`, 'success');
     }
   });
   
   generateModelBtn.addEventListener('click', async () => {
     if (currentFiles.length < 2) {
-      showStatus('photo-status', 'Please select at least 2 photos', 'error');
+      showStatus('photo-status', 'Minimum 2 photos required', 'error');
       return;
     }
     
     try {
-      showStatus('photo-status', 'Generating 3D model from photos...', 'info');
+      showStatus('photo-status', 'Processing...', 'info');
       generateModelBtn.disabled = true;
       
       const formData = new FormData();
@@ -547,14 +728,15 @@ function initializePhoto() {
       
       const response = await axios.post(`${API_BASE}/photo-to-model`, formData, {
         headers: formData.getHeaders(),
-        responseType: 'blob'
+        responseType: 'arraybuffer'
       });
       
       const savePath = await ipcRenderer.invoke('save-file', 'photo_model.stl');
       
       if (savePath) {
-        fs.writeFileSync(savePath, response.data);
-        showStatus('photo-status', `3D model generated and saved to ${savePath}`, 'success');
+        fs.writeFileSync(savePath, Buffer.from(response.data));
+        showStatus('photo-status', `Generated successfully`, 'success');
+        loadModelToViewer(savePath);
       }
     } catch (error) {
       console.error('Photo to model error:', error);
@@ -575,24 +757,24 @@ function showStatus(elementId, message, type) {
 function updateStatus(message, type = 'info') {
   const statusText = document.getElementById('status-text');
   statusText.textContent = message;
-  statusText.style.color = type === 'success' ? 'var(--accent-success)' : 
-                          type === 'error' ? 'var(--accent-error)' : 
+  statusText.style.color = type === 'success' ? 'var(--success)' : 
+                          type === 'error' ? 'var(--error)' : 
                           'var(--text-primary)';
 }
 
 function formatFileSize(bytes) {
   if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
-  return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 }
 
 async function checkBackendStatus() {
   try {
-    await axios.get(`${API_BASE}/health`, { timeout: 2000 });
+    const res = await axios.get(`${API_BASE}/health`, { timeout: 2000 });
     document.getElementById('api-status').innerHTML = 
-      'Backend: <span class="status-dot"></span>';
+      'API Connected <span class="status-dot"></span>';
   } catch (error) {
     document.getElementById('api-status').innerHTML = 
-      'Backend: <span class="status-dot" style="background: var(--accent-error)"></span>';
+      'API Disconnected <span class="status-dot" style="background: var(--error); box-shadow: 0 0 8px var(--error)"></span>';
   }
 }
