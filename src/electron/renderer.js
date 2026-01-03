@@ -3,15 +3,42 @@
  * Handles UI interactions, API communication, and 3D Visualization
  */
 
-const { ipcRenderer } = require('electron');
-const axios = require('axios');
-const FormData = require('form-data');
-const fs = require('fs');
-const path = require('path');
-const THREE = require('three');
-const { OrbitControls } = require('three/examples/jsm/controls/OrbitControls');
-const { STLLoader } = require('three/examples/jsm/loaders/STLLoader');
-const { OBJLoader } = require('three/examples/jsm/loaders/OBJLoader');
+// Environment detection and safe requires
+let ipcRenderer, axios, FormData, fs, path, THREE, OrbitControls, STLLoader, OBJLoader;
+
+function initializeDependencies() {
+  try {
+    if (typeof require !== 'undefined') {
+      try {
+        ipcRenderer = require('electron').ipcRenderer;
+        axios = require('axios');
+        FormData = require('form-data');
+        fs = require('fs');
+        path = require('path');
+        THREE = require('three');
+        OrbitControls = require('three/examples/jsm/controls/OrbitControls').OrbitControls;
+        STLLoader = require('three/examples/jsm/loaders/STLLoader').STLLoader;
+        OBJLoader = require('three/examples/jsm/loaders/OBJLoader').OBJLoader;
+      } catch (e) {
+        console.warn("Some Node modules failed to load, checking globals.", e);
+      }
+    }
+  } catch (err) {
+    console.error("Critical dependency loading failed:", err);
+  }
+
+  // Web mode fallbacks (using globals from script tags)
+  if (!axios && typeof window.axios !== 'undefined') axios = window.axios;
+  if (!THREE && typeof window.THREE !== 'undefined') THREE = window.THREE;
+  
+  if (THREE) {
+    if (!OrbitControls) OrbitControls = THREE.OrbitControls;
+    if (!STLLoader) STLLoader = THREE.STLLoader;
+    if (!OBJLoader) OBJLoader = THREE.OBJLoader;
+  }
+}
+
+initializeDependencies();
 
 const API_BASE = 'http://127.0.0.1:5000/api';
 
@@ -24,7 +51,12 @@ const CANVAS_ID = 'viewer-canvas';
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
+  console.log("SprueCrafter Initializing...");
+  
+  // Navigation MUST be first to ensure UI responsiveness even if 3D fails
   initializeNavigation();
+  initializeSettings();
+  
   initializeUpload();
   initializeConvert();
   initializeScale();
@@ -35,12 +67,26 @@ document.addEventListener('DOMContentLoaded', () => {
   initializePhoto();
   checkBackendStatus();
   
-  // Initialize 3D Viewer
-  init3DViewer();
+  // Initialize 3D Viewer (only if THREE is available)
+  if (THREE) {
+    init3DViewer();
+  } else {
+    updateStatus('3D Viewer disabled (Three.js not found)', 'error');
+  }
   
   // Check backend status periodically
   setInterval(checkBackendStatus, 10000);
 });
+
+// Settings functionality
+function initializeSettings() {
+  const settingsBtn = document.getElementById('settings-btn');
+  if (settingsBtn) {
+    settingsBtn.addEventListener('click', () => {
+      alert("Settings panel coming soon! Running in " + (typeof require !== 'undefined' ? "Desktop" : "Web") + " mode.");
+    });
+  }
+}
 
 // Navigation
 function initializeNavigation() {
@@ -173,18 +219,28 @@ function onWindowResize() {
   renderer.setSize(container.clientWidth, container.clientHeight);
 }
 
-async function loadModelToViewer(filePath) {
-  const ext = path.extname(filePath).toLowerCase();
-  updateStatus(`Loading ${path.basename(filePath)}...`, 'info');
+async function loadModelToViewer(fileSource) {
+  let filePath = (typeof fileSource === 'string') ? fileSource : (fileSource.path || URL.createObjectURL(fileSource));
+  const fileName = (typeof fileSource === 'string') ? path.basename(fileSource) : fileSource.name;
+  const ext = fileName.split('.').pop().toLowerCase();
+  
+  updateStatus(`Loading ${fileName}...`, 'info');
   
   if (currentModel) scene.remove(currentModel);
   
   try {
-    const loader = ext === '.obj' ? new OBJLoader() : new STLLoader();
-    
-    // Read file as buffer then to ArrayBuffer
-    const buffer = fs.readFileSync(filePath);
-    const arrayBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+    const loader = ext === 'obj' ? new OBJLoader() : new STLLoader();
+    let arrayBuffer;
+
+    if (fs && typeof fileSource === 'string') {
+      // Desktop mode with real path
+      const buffer = fs.readFileSync(fileSource);
+      arrayBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+    } else {
+      // Web mode or Blob
+      const response = await fetch(filePath);
+      arrayBuffer = await response.arrayBuffer();
+    }
     
     let geometry;
     let material = new THREE.MeshPhongMaterial({ 
@@ -284,8 +340,8 @@ function handleFileUpload(file) {
   fileInfo.classList.remove('hidden');
   updateStatus('File loaded successfully', 'success');
   
-  // Load into 3D viewer
-  loadModelToViewer(file.path);
+  // Load into 3D viewer (pass the whole file object)
+  loadModelToViewer(file);
 }
 
 // Convert functionality
@@ -304,27 +360,31 @@ function initializeConvert() {
       showStatus('convert-status', 'Converting file...', 'info');
       convertBtn.disabled = true;
       
-      const formData = new FormData();
-      formData.append('file', fs.createReadStream(currentFile.path));
-      formData.append('format', targetFormat);
+      const fd = new (FormData || window.FormData)();
+      fd.append('file', currentFile);
+      fd.append('format', targetFormat);
       
-      const response = await axios.post(`${API_BASE}/convert`, formData, {
-        headers: formData.getHeaders(),
+      const response = await axios.post(`${API_BASE}/convert`, fd, {
+        headers: fd.getHeaders ? fd.getHeaders() : {},
         responseType: 'arraybuffer'
       });
       
-      // Save converted file
-      const savePath = await ipcRenderer.invoke('save-file', 
-        `${currentFile.name.split('.')[0]}_converted.${targetFormat}`);
-      
-      if (savePath) {
-        fs.writeFileSync(savePath, Buffer.from(response.data));
-        showStatus('convert-status', `File converted and saved`, 'success');
+      if (ipcRenderer) {
+        // Desktop Mode
+        const savePath = await ipcRenderer.invoke('save-file', 
+          `${currentFile.name.split('.')[0]}_converted.${targetFormat}`);
         
-        // Update viewer if it's a format we support
-        if (['stl', 'obj'].includes(targetFormat)) {
-          loadModelToViewer(savePath);
+        if (savePath) {
+          fs.writeFileSync(savePath, Buffer.from(response.data));
+          showStatus('convert-status', `File converted and saved`, 'success');
+          if (['stl', 'obj'].includes(targetFormat)) {
+            loadModelToViewer(savePath);
+          }
         }
+      } else {
+        // Web Mode - Download
+        downloadBlob(response.data, `${currentFile.name.split('.')[0]}_converted.${targetFormat}`);
+        showStatus('convert-status', 'Conversion complete (Downloaded)', 'success');
       }
     } catch (error) {
       console.error('Conversion error:', error);
@@ -370,23 +430,28 @@ function initializeScale() {
       showStatus('scale-status', 'Scaling model...', 'info');
       scaleBtn.disabled = true;
       
-      const formData = new FormData();
-      formData.append('file', fs.createReadStream(currentFile.path));
-      formData.append('scale', scale);
-      formData.append('unit', unit);
+      const fd = new (FormData || window.FormData)();
+      fd.append('file', currentFile);
+      fd.append('scale', scale);
+      fd.append('unit', unit);
       
-      const response = await axios.post(`${API_BASE}/scale`, formData, {
-        headers: formData.getHeaders(),
+      const response = await axios.post(`${API_BASE}/scale`, fd, {
+        headers: fd.getHeaders ? fd.getHeaders() : {},
         responseType: 'arraybuffer'
       });
       
-      const savePath = await ipcRenderer.invoke('save-file', 
-        `${currentFile.name.split('.')[0]}_scaled.stl`);
-      
-      if (savePath) {
-        fs.writeFileSync(savePath, Buffer.from(response.data));
-        showStatus('scale-status', `Model scaled and saved`, 'success');
-        loadModelToViewer(savePath);
+      if (ipcRenderer) {
+        const savePath = await ipcRenderer.invoke('save-file', 
+          `${currentFile.name.split('.')[0]}_scaled.stl`);
+        
+        if (savePath) {
+          fs.writeFileSync(savePath, Buffer.from(response.data));
+          showStatus('scale-status', `Model scaled and saved`, 'success');
+          loadModelToViewer(savePath);
+        }
+      } else {
+        downloadBlob(response.data, `${currentFile.name.split('.')[0]}_scaled.stl`);
+        showStatus('scale-status', 'Scaling complete (Downloaded)', 'success');
       }
     } catch (error) {
       console.error('Scaling error:', error);
@@ -411,11 +476,11 @@ function initializeSeparate() {
       showStatus('separate-status', 'Separating parts...', 'info');
       separateBtn.disabled = true;
       
-      const formData = new FormData();
-      formData.append('file', fs.createReadStream(currentFile.path));
+      const fd = new (FormData || window.FormData)();
+      fd.append('file', currentFile);
       
-      const response = await axios.post(`${API_BASE}/separate`, formData, {
-        headers: formData.getHeaders()
+      const response = await axios.post(`${API_BASE}/separate`, fd, {
+        headers: fd.getHeaders ? fd.getHeaders() : {}
       });
       
       displayPartsInfo(response.data);
@@ -472,24 +537,28 @@ function initializeTransform() {
       showStatus('transform-status', 'Rotating model...', 'info');
       rotateBtn.disabled = true;
       
-      const formData = new FormData();
-      formData.append('file', fs.createReadStream(currentFile.path));
-      formData.append('operation', 'rotate');
-      formData.append('axis', axis);
-      formData.append('angle', angle);
+      const fd = new (FormData || window.FormData)();
+      fd.append('file', currentFile);
+      fd.append('operation', 'rotate');
+      fd.append('axis', axis);
+      fd.append('angle', angle);
       
-      const response = await axios.post(`${API_BASE}/transform`, formData, {
-        headers: formData.getHeaders(),
+      const response = await axios.post(`${API_BASE}/transform`, fd, {
+        headers: fd.getHeaders ? fd.getHeaders() : {},
         responseType: 'arraybuffer'
       });
       
-      const savePath = await ipcRenderer.invoke('save-file', 
-        `${currentFile.name.split('.')[0]}_rotated.stl`);
-      
-      if (savePath) {
-        fs.writeFileSync(savePath, Buffer.from(response.data));
-        showStatus('transform-status', 'Rotated successfully', 'success');
-        loadModelToViewer(savePath);
+      if (ipcRenderer) {
+        const savePath = await ipcRenderer.invoke('save-file', 
+          `${currentFile.name.split('.')[0]}_rotated.stl`);
+        if (savePath) {
+          fs.writeFileSync(savePath, Buffer.from(response.data));
+          showStatus('transform-status', 'Rotated successfully', 'success');
+          loadModelToViewer(savePath);
+        }
+      } else {
+        downloadBlob(response.data, `${currentFile.name.split('.')[0]}_rotated.stl`);
+        showStatus('transform-status', 'Rotated (Downloaded)', 'success');
       }
     } catch (error) {
       console.error('Rotation error:', error);
@@ -513,25 +582,29 @@ function initializeTransform() {
       showStatus('transform-status', 'Translating model...', 'info');
       translateBtn.disabled = true;
       
-      const formData = new FormData();
-      formData.append('file', fs.createReadStream(currentFile.path));
-      formData.append('operation', 'translate');
-      formData.append('x', x);
-      formData.append('y', y);
-      formData.append('z', z);
+      const fd = new (FormData || window.FormData)();
+      fd.append('file', currentFile);
+      fd.append('operation', 'translate');
+      fd.append('x', x);
+      fd.append('y', y);
+      fd.append('z', z);
       
-      const response = await axios.post(`${API_BASE}/transform`, formData, {
-        headers: formData.getHeaders(),
+      const response = await axios.post(`${API_BASE}/transform`, fd, {
+        headers: fd.getHeaders ? fd.getHeaders() : {},
         responseType: 'arraybuffer'
       });
       
-      const savePath = await ipcRenderer.invoke('save-file', 
-        `${currentFile.name.split('.')[0]}_translated.stl`);
-      
-      if (savePath) {
-        fs.writeFileSync(savePath, Buffer.from(response.data));
-        showStatus('transform-status', 'Translated successfully', 'success');
-        loadModelToViewer(savePath);
+      if (ipcRenderer) {
+        const savePath = await ipcRenderer.invoke('save-file', 
+          `${currentFile.name.split('.')[0]}_translated.stl`);
+        if (savePath) {
+          fs.writeFileSync(savePath, Buffer.from(response.data));
+          showStatus('transform-status', 'Translated successfully', 'success');
+          loadModelToViewer(savePath);
+        }
+      } else {
+        downloadBlob(response.data, `${currentFile.name.split('.')[0]}_translated.stl`);
+        showStatus('transform-status', 'Translated (Downloaded)', 'success');
       }
     } catch (error) {
       console.error('Translation error:', error);
@@ -561,14 +634,14 @@ function initializeSupports() {
       showStatus('supports-status', 'Working...', 'info');
       generateBtn.disabled = true;
       
-      const formData = new FormData();
-      formData.append('file', fs.createReadStream(currentFile.path));
-      formData.append('mode', mode);
-      formData.append('overhang_angle', overhangAngle);
-      formData.append('density', density);
+      const fd = new (FormData || window.FormData)();
+      fd.append('file', currentFile);
+      fd.append('mode', mode);
+      fd.append('overhang_angle', overhangAngle);
+      fd.append('density', density);
       
-      const response = await axios.post(`${API_BASE}/generate-supports`, formData, {
-        headers: formData.getHeaders(),
+      const response = await axios.post(`${API_BASE}/generate-supports`, fd, {
+        headers: fd.getHeaders ? fd.getHeaders() : {},
         responseType: mode === 'estimate' ? 'json' : 'arraybuffer'
       });
       
@@ -576,13 +649,17 @@ function initializeSupports() {
         displaySupportsInfo(response.data);
         showStatus('supports-status', 'Estimation complete', 'success');
       } else {
-        const savePath = await ipcRenderer.invoke('save-file', 
-          `${currentFile.name.split('.')[0]}_with_supports.stl`);
-        
-        if (savePath) {
-          fs.writeFileSync(savePath, Buffer.from(response.data));
-          showStatus('supports-status', 'Supports generated', 'success');
-          loadModelToViewer(savePath);
+        if (ipcRenderer) {
+          const savePath = await ipcRenderer.invoke('save-file', 
+            `${currentFile.name.split('.')[0]}_with_supports.stl`);
+          if (savePath) {
+            fs.writeFileSync(savePath, Buffer.from(response.data));
+            showStatus('supports-status', 'Supports generated', 'success');
+            loadModelToViewer(savePath);
+          }
+        } else {
+          downloadBlob(response.data, `${currentFile.name.split('.')[0]}_with_supports.stl`);
+          showStatus('supports-status', 'Generated (Downloaded)', 'success');
         }
       }
     } catch (error) {
@@ -651,25 +728,29 @@ function initializeSprue() {
       
       const connectorType = document.getElementById('connector-type').value;
       
-      const formData = new FormData();
-      formData.append('file', fs.createReadStream(currentFile.path));
-      formData.append('build_plate_x', buildPlateX);
-      formData.append('build_plate_y', buildPlateY);
-      formData.append('build_plate_z', buildPlateZ);
-      formData.append('connector_type', connectorType);
+      const fd = new (FormData || window.FormData)();
+      fd.append('file', currentFile);
+      fd.append('build_plate_x', buildPlateX);
+      fd.append('build_plate_y', buildPlateY);
+      fd.append('build_plate_z', buildPlateZ);
+      fd.append('connector_type', connectorType);
       
-      const response = await axios.post(`${API_BASE}/generate-sprue`, formData, {
-        headers: formData.getHeaders(),
+      const response = await axios.post(`${API_BASE}/generate-sprue`, fd, {
+        headers: fd.getHeaders ? fd.getHeaders() : {},
         responseType: 'arraybuffer'
       });
       
-      const savePath = await ipcRenderer.invoke('save-file', 
-        `${currentFile.name.split('.')[0]}_sprue.stl`);
-      
-      if (savePath) {
-        fs.writeFileSync(savePath, Buffer.from(response.data));
-        showStatus('sprue-status', `Sprue generated`, 'success');
-        loadModelToViewer(savePath);
+      if (ipcRenderer) {
+        const savePath = await ipcRenderer.invoke('save-file', 
+          `${currentFile.name.split('.')[0]}_sprue.stl`);
+        if (savePath) {
+          fs.writeFileSync(savePath, Buffer.from(response.data));
+          showStatus('sprue-status', `Sprue generated`, 'success');
+          loadModelToViewer(savePath);
+        }
+      } else {
+        downloadBlob(response.data, `${currentFile.name.split('.')[0]}_sprue.stl`);
+        showStatus('sprue-status', 'Sprue generated (Downloaded)', 'success');
       }
     } catch (error) {
       console.error('Sprue generation error:', error);
@@ -696,20 +777,43 @@ function initializePhoto() {
   const generateModelBtn = document.getElementById('generate-model-btn');
   const photoPreview = document.getElementById('photo-preview');
   
+  // Hidden input for web mode
+  const webFileInput = document.createElement('input');
+  webFileInput.type = 'file';
+  webFileInput.multiple = true;
+  webFileInput.accept = 'image/*';
+  webFileInput.style.display = 'none';
+  document.body.appendChild(webFileInput);
+
   selectPhotosBtn.addEventListener('click', async () => {
-    const files = await ipcRenderer.invoke('select-multiple-files');
+    if (ipcRenderer) {
+      const files = await ipcRenderer.invoke('select-multiple-files');
+      handlePhotoSelection(files);
+    } else {
+      webFileInput.click();
+    }
+  });
+
+  webFileInput.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
+      handlePhotoSelection(Array.from(e.target.files));
+    }
+  });
+
+  function handlePhotoSelection(files) {
     if (files && files.length > 0) {
       currentFiles = files;
       
       // Show preview
-      photoPreview.innerHTML = files.slice(0, 8).map(file => `
-        <img src="${file}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px; margin-right: 4px;">
-      `).join('') + (files.length > 8 ? `<span style="font-size:10px">+${files.length-8}</span>` : '');
+      photoPreview.innerHTML = files.slice(0, 8).map(file => {
+        const src = (typeof file === 'string') ? file : URL.createObjectURL(file);
+        return `<img src="${src}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px; margin-right: 4px;">`;
+      }).join('') + (files.length > 8 ? `<span style="font-size:10px">+${files.length-8}</span>` : '');
       
       generateModelBtn.classList.remove('hidden');
       showStatus('photo-status', `${files.length} images selected`, 'success');
     }
-  });
+  }
   
   generateModelBtn.addEventListener('click', async () => {
     if (currentFiles.length < 2) {
@@ -721,22 +825,30 @@ function initializePhoto() {
       showStatus('photo-status', 'Processing...', 'info');
       generateModelBtn.disabled = true;
       
-      const formData = new FormData();
+      const fd = new (FormData || window.FormData)();
       currentFiles.forEach(file => {
-        formData.append('files', fs.createReadStream(file));
+        if (typeof file === 'string' && fs) {
+          fd.append('files', fs.createReadStream(file));
+        } else {
+          fd.append('files', file);
+        }
       });
       
-      const response = await axios.post(`${API_BASE}/photo-to-model`, formData, {
-        headers: formData.getHeaders(),
+      const response = await axios.post(`${API_BASE}/photo-to-model`, fd, {
+        headers: fd.getHeaders ? fd.getHeaders() : {},
         responseType: 'arraybuffer'
       });
       
-      const savePath = await ipcRenderer.invoke('save-file', 'photo_model.stl');
-      
-      if (savePath) {
-        fs.writeFileSync(savePath, Buffer.from(response.data));
-        showStatus('photo-status', `Generated successfully`, 'success');
-        loadModelToViewer(savePath);
+      if (ipcRenderer) {
+        const savePath = await ipcRenderer.invoke('save-file', 'photo_model.stl');
+        if (savePath) {
+          fs.writeFileSync(savePath, Buffer.from(response.data));
+          showStatus('photo-status', `Generated successfully`, 'success');
+          loadModelToViewer(savePath);
+        }
+      } else {
+        downloadBlob(response.data, 'photo_model.stl');
+        showStatus('photo-status', 'Generated (Downloaded)', 'success');
       }
     } catch (error) {
       console.error('Photo to model error:', error);
@@ -775,6 +887,21 @@ async function checkBackendStatus() {
       'API Connected <span class="status-dot"></span>';
   } catch (error) {
     document.getElementById('api-status').innerHTML = 
-      'API Disconnected <span class="status-dot" style="background: var(--error); box-shadow: 0 0 8px var(--error)"></span>';
+      'API Error <span class="status-dot" style="background: var(--error); box-shadow: 0 0 8px var(--error)"></span>';
   }
+}
+
+// Helper for web mode downloads
+function downloadBlob(data, fileName) {
+  const blob = new Blob([data], { type: 'application/octet-stream' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  }, 0);
 }
