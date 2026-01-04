@@ -212,12 +212,14 @@ def login():
     data = request.get_json()
     
     if not data or not data.get('username') or not data.get('password'):
-        return jsonify({'error': 'Username and password required'}), 400
+        return jsonify({'error': 'Username/Email and password required'}), 400
     
-    user = User.query.filter_by(username=data['username']).first()
+    # Check for user by username OR email
+    username_or_email = data['username']
+    user = User.query.filter((User.username == username_or_email) | (User.email == username_or_email)).first()
     
     if not user or not user.check_password(data['password']):
-        return jsonify({'error': 'Invalid username or password'}), 401
+        return jsonify({'error': 'Invalid credentials'}), 401
     
     if not user.is_active:
         return jsonify({'error': 'Account is inactive'}), 401
