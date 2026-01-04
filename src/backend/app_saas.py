@@ -758,6 +758,15 @@ def serve_website(path):
         
     return send_from_directory(website_dir, path)
 
+# Auto-initialize database tables for Gunicorn/Production
+# This ensures tables exist even if 'flask init-db' wasn't run or failed
+with app.app_context():
+    try:
+        db.create_all()
+        logger.info("Database tables initialized successfully on startup")
+    except Exception as e:
+        logger.warning(f"Database initialization check failed: {e}")
+
 
 if __name__ == '__main__':
     print("Starting SprueCrafter Backend API...")
