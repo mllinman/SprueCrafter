@@ -119,3 +119,15 @@ async function handleManageBilling() {
         console.error('Portal error:', error);
     }
 }
+
+function handleGuestLogin() {
+    // Clear existing auth
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user');
+    
+    // Set guest flag
+    localStorage.setItem('is_guest', 'true');
+    
+    // Redirect to dashboard
+    window.location.href = 'dashboard.html';
+}

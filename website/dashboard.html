@@ -86,9 +86,16 @@
         // Dashboard logic
         document.addEventListener('DOMContentLoaded', async () => {
             const token = localStorage.getItem('auth_token');
-            if (!token) {
+            const isGuest = localStorage.getItem('is_guest') === 'true';
+            
+            if (!token && !isGuest) {
                 window.location.href = 'login.html';
                 return;
+            }
+
+            if (isGuest) {
+                 updateDashboardAsGuest();
+                 return;
             }
 
             // Fetch fresh user data to ensure subscription status is up to date
@@ -113,9 +120,40 @@
             }
         });
 
+        function updateDashboardAsGuest() {
+            document.getElementById('user-name').textContent = 'Guest';
+            document.getElementById('welcome-name').textContent = 'Guest';
+            
+            // Modify Status Card
+            document.getElementById('sub-status').textContent = 'Guest Mode';
+            const subBtn = document.querySelector('a[href="pricing.html"]');
+            subBtn.textContent = 'Create Account';
+            subBtn.href = 'login.html'; // Or register
+            
+            // Disable Printers Card
+            const printersCard = document.querySelectorAll('.feature-card')[2]; // 3rd card
+            printersCard.querySelector('p').innerHTML = 'Sign in to save custom profiles.';
+            printersCard.querySelector('button').textContent = 'Login to Manage';
+            printersCard.querySelector('button').onclick = () => window.location.href = 'login.html';
+            printersCard.querySelector('button').disabled = false;
+            
+            // Hide Download Card (User requested to hide downloads)
+            const downloadCard = document.querySelectorAll('.feature-card')[1];
+            if (downloadCard) downloadCard.style.display = 'none';
+
+            // Update Logout to Login
+            const logoutBtn = document.querySelector('header button');
+            logoutBtn.textContent = 'Log In / Sign Up';
+            logoutBtn.onclick = () => window.location.href = 'login.html';
+        }
+
         function updateDashboard(user) {
             document.getElementById('user-name').textContent = user.name || user.email;
             document.getElementById('welcome-name').textContent = (user.name || user.email).split(' ')[0] || 'Creator';
+            
+            // Hide Download Card (User requested to hide downloads globally for now)
+            const downloadCard = document.querySelectorAll('.feature-card')[1];
+            if (downloadCard) downloadCard.style.display = 'none';
             
             const subStatus = document.getElementById('sub-status');
             const subBtn = document.querySelector('a[href="pricing.html"]'); // Upgrade button replacement container
