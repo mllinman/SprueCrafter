@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - SprueCrafter</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <a href="index.html" class="logo">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <rect width="32" height="32" rx="8" fill="url(#logo-grad)"/>
+                    <path d="M16 8L20 14H12L16 8Z" fill="#000"/>
+                    <rect x="14" y="14" width="4" height="10" fill="#000"/>
+                    <defs>
+                        <linearGradient id="logo-grad" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+                            <stop stop-color="#00f2ff"/>
+                            <stop offset="1" stop-color="#0077ff"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+                SprueCrafter
+            </a>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <span id="user-name" style="color: var(--text-secondary);">User</span>
+                <button onclick="logout()" class="btn btn-outline" style="padding: 0.5rem 1rem; font-size: 0.9rem;">Log Out</button>
+            </div>
+        </div>
+    </header>
+
+    <section class="hero" style="min-height: auto; padding-top: calc(var(--header-height) + 2rem); padding-bottom: 2rem;">
+        <div class="container">
+            <h1>Welcome back, <span id="welcome-name" class="text-gradient">Creator</span></h1>
+            <p style="color: var(--text-secondary);">Manage your subscription, printers, and downloads.</p>
+        </div>
+    </section>
+
+    <section class="dashboard-content" style="padding-bottom: 6rem;">
+        <div class="container">
+            <div class="features-grid">
+                <!-- Status Card -->
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-id-card"></i></div>
+                    <h3>Subscription Status</h3>
+                    <p id="sub-status" style="font-size: 1.2rem; font-weight: 600; margin: 0.5rem 0;">Free Plan</p>
+                    <a href="pricing.html" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Upgrade to Pro</a>
+                </div>
+
+                <!-- Download Card -->
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-download"></i></div>
+                    <h3>Download App</h3>
+                    <p>Get the latest version of SprueCrafter for your desktop.</p>
+                    <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                        <a href="downloads.html" class="btn btn-outline" style="flex: 1;"><i class="fab fa-windows"></i> Win</a>
+                        <a href="downloads.html" class="btn btn-outline" style="flex: 1;"><i class="fab fa-linux"></i> Lin</a>
+                    </div>
+                </div>
+
+                <!-- Custom Printers Card -->
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-print"></i></div>
+                    <h3>My Printers</h3>
+                    <p>You have <span style="color: var(--accent-primary);">0</span> custom printer profiles saved.</p>
+                    <button class="btn btn-outline" style="width: 100%; margin-top: 1rem;" disabled>Manage in App</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <div class="footer-copy">
+                &copy; 2024 SprueCrafter. All rights reserved.
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/main.js"></script>
+    <script>
+        // Dashboard logic
+        document.addEventListener('DOMContentLoaded', () => {
+            const user = JSON.parse(localStorage.getItem('user'));
+            if (!user) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            document.getElementById('user-name').textContent = user.name || user.email;
+            document.getElementById('welcome-name').textContent = (user.name || user.email).split(' ')[0];
+            
+            if (user.is_pro) {
+                const subStatus = document.getElementById('sub-status');
+                subStatus.textContent = 'Pro Plan';
+                subStatus.style.color = 'var(--accent-primary)';
+                document.querySelector('a[href="pricing.html"]').textContent = 'Manage Subscription';
+            }
+        });
+
+        function logout() {
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user');
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>

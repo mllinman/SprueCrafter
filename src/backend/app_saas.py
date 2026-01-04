@@ -3,7 +3,7 @@ SprueCrafter Backend API - Enhanced for SaaS Deployment
 Main Flask application with authentication, database, and production features
 """
 
-from flask import Flask, request, jsonify, send_file, g
+from flask import Flask, request, jsonify, send_file, g, send_from_directory
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token, create_refresh_token, get_jwt_identity
 from flask_migrate import Migrate
@@ -576,6 +576,30 @@ def internal_error(error):
 @app.errorhandler(429)
 def ratelimit_handler(error):
     return jsonify({'error': 'Rate limit exceeded', 'message': str(error.description)}), 429
+
+
+# ==================== Website Serving ====================
+
+@app.route('/', defaults={'path': 'index.html'})
+@app.route('/<path:path>')
+def serve_website(path):
+    """Serve the marketing website static files"""
+    # API routes are already handled above, so this catches everything else
+    if path.startswith('api/'):
+        return jsonify({'error': 'Not found'}), 404
+        
+    # Determine website directory path relative to this file
+    # src/backend/app_saas.py -> ../../website
+    website_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../website'))
+    
+    if not os.path.exists(os.path.join(website_dir, path)):
+        # If file doesn't exist, generic 404 or fallback to index for SPA (if we had one)
+        # For now, if extension exists, 404, else index (simple logic)
+        if '.' in path:
+             return jsonify({'error': 'File not found'}), 404
+        path = 'index.html'
+        
+    return send_from_directory(website_dir, path)
 
 
 if __name__ == '__main__':
