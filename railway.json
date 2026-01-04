@@ -5,7 +5,7 @@
     "buildCommand": "pip install -r requirements.txt"
   },
   "deploy": {
-    "startCommand": "sh -c 'gunicorn --bind 0.0.0.0:$PORT --workers 4 --timeout 120 src.backend.app_saas:app'",
+    "startCommand": "sh -c 'flask init-db && gunicorn --bind 0.0.0.0:$PORT --workers 4 --timeout 120 src.backend.app_saas:app'",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
   }
