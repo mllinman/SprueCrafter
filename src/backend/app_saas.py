@@ -735,6 +735,11 @@ def serve_website(path):
     # src/backend/app_saas.py -> ../../website
     website_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../website'))
     
+    # DEBUG LOGGING for Railway
+    print(f"DEBUG: requesting {path}")
+    print(f"DEBUG: website_dir={website_dir}")
+    print(f"DEBUG: exists={os.path.exists(os.path.join(website_dir, path))}")
+    
     if not os.path.exists(os.path.join(website_dir, path)):
         # If file doesn't exist, generic 404 or fallback to index for SPA (if we had one)
         # For now, if extension exists, 404, else index (simple logic)

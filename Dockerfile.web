@@ -24,6 +24,7 @@ RUN pip install --no-cache-dir -r requirements.prod.txt
 COPY src/backend/ ./src/backend/
 COPY public/ ./public/
 COPY src/electron/ ./src/electron/
+COPY website/ ./website/
 
 # Create necessary directories
 RUN mkdir -p /app/uploads /app/temp
