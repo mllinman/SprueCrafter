@@ -157,7 +157,7 @@ def info():
 # ==================== Authentication Endpoints ====================
 
 @app.route('/api/auth/register', methods=['POST'])
-@limiter.limit("5 per hour")
+@limiter.limit("20 per hour")
 def register():
     """Register a new user"""
     if not config.ENABLE_REGISTRATION:

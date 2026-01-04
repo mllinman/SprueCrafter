@@ -69,17 +69,26 @@
                     body: JSON.stringify({ username, email, password })
                 });
 
-                const data = await res.json();
+                // Check content type before parsing
+                const contentType = res.headers.get("content-type");
+                let data;
+                if (contentType && contentType.indexOf("application/json") !== -1) {
+                    data = await res.json();
+                } else {
+                    const text = await res.text();
+                    console.error('Non-JSON response:', text);
+                    data = { error: `Server error (${res.status}): ${text.substring(0, 100)}` };
+                }
 
                 if (res.ok) {
                     alert('Registration successful! Please log in.');
                     window.location.href = 'login.html';
                 } else {
-                    alert(data.error || 'Registration failed.');
+                    alert('Error: ' + (data.error || 'Registration failed'));
                 }
             } catch (error) {
-                console.error('Error:', error);
-                alert('Connection failed.');
+                console.error('Network/Parsing Error:', error);
+                alert('Connection failed: ' + error.message);
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Sign Up';
