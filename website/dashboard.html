@@ -109,8 +109,16 @@
                     
                     updateDashboard(user);
                 } else {
-                    // Token might be expired
-                    logout();
+                    console.error('Auth Check Failed:', res.status);
+                    if (res.status === 401 || res.status === 403) {
+                         // Token is definitely invalid/expired
+                         logout();
+                    } else {
+                        // Server error or other issue - don't logout, just show cached data if possible or alert
+                        console.warn('Server error checking auth, staying logged in with cached data');
+                        const cachedUser = JSON.parse(localStorage.getItem('user'));
+                        if (cachedUser) updateDashboard(cachedUser);
+                    }
                 }
             } catch (e) {
                 console.error("Failed to refresh user data", e);
