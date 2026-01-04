@@ -719,7 +719,8 @@ def not_found(error):
 @app.errorhandler(500)
 def internal_error(error):
     db.session.rollback()
-    return jsonify({'error': 'Internal server error'}), 500
+    # In production, be careful leaking info, but for debugging this 500 issue it's vital
+    return jsonify({'error': 'Internal server error', 'message': str(error), 'detail': 'Check server logs'}), 500
 
 
 @app.errorhandler(429)

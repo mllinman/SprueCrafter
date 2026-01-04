@@ -55,7 +55,8 @@ class Config:
     # Rate Limiting
     RATELIMIT_ENABLED = os.getenv('RATELIMIT_ENABLED', 'True').lower() == 'true'
     RATELIMIT_DEFAULT = os.getenv('RATELIMIT_DEFAULT', '100 per hour')
-    RATELIMIT_STORAGE_URL = os.getenv('RATELIMIT_STORAGE_URL', REDIS_URL)
+    # Use memory storage by default to avoid Redis crashes if not configured
+    RATELIMIT_STORAGE_URL = os.getenv('RATELIMIT_STORAGE_URL', 'memory://')
     
     # AWS S3 Configuration
     USE_S3 = os.getenv('USE_S3', 'False').lower() == 'true'
