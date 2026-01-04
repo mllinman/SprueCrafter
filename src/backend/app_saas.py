@@ -163,21 +163,21 @@ def register():
     if not config.ENABLE_REGISTRATION:
         return jsonify({'error': 'Registration is currently disabled'}), 403
     
-    data = request.get_json()
-    
-    # Validate required fields
-    required = ['username', 'email', 'password']
-    if not all(field in data for field in required):
-        return jsonify({'error': 'Missing required fields'}), 400
-    
-    # Check if user exists
-    if User.query.filter_by(username=data['username']).first():
-        return jsonify({'error': 'Username already exists'}), 400
-    
-    if User.query.filter_by(email=data['email']).first():
-        return jsonify({'error': 'Email already exists'}), 400
-    
     try:
+        data = request.get_json()
+        
+        # Validate required fields
+        required = ['username', 'email', 'password']
+        if not all(field in data for field in required):
+            return jsonify({'error': 'Missing required fields'}), 400
+        
+        # Check if user exists
+        if User.query.filter_by(username=data['username']).first():
+            return jsonify({'error': 'Username already exists'}), 400
+        
+        if User.query.filter_by(email=data['email']).first():
+            return jsonify({'error': 'Email already exists'}), 400
+        
         # Create new user
         user = User(
             username=data['username'],
@@ -202,7 +202,9 @@ def register():
     except Exception as e:
         db.session.rollback()
         logger.error(f"Error registering user: {str(e)}")
-        return jsonify({'error': 'Registration failed'}), 500
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Registration exception: {str(e)}'}), 500
 
 
 @app.route('/api/auth/login', methods=['POST'])

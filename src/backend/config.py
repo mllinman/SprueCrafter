@@ -53,7 +53,8 @@ class Config:
     CORS_ORIGINS = os.getenv('CORS_ORIGINS', '*').split(',')
     
     # Rate Limiting
-    RATELIMIT_ENABLED = os.getenv('RATELIMIT_ENABLED', 'True').lower() == 'true'
+    RATELIMIT_ENABLED = False # Disabled for debugging 500 errors
+    # RATELIMIT_ENABLED = os.getenv('RATELIMIT_ENABLED', 'True').lower() == 'true'
     RATELIMIT_DEFAULT = os.getenv('RATELIMIT_DEFAULT', '100 per hour')
     # Use memory storage by default to avoid Redis crashes if not configured
     RATELIMIT_STORAGE_URL = os.getenv('RATELIMIT_STORAGE_URL', 'memory://')
