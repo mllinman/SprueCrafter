@@ -89,6 +89,8 @@
             const isGuest = localStorage.getItem('is_guest') === 'true';
             
             if (!token && !isGuest) {
+                // DEBUG: Alert user why they are being redirected
+                alert(`Debug: Redirecting to login. Token=${token ? 'Yes' : 'No'}, Guest=${isGuest}`);
                 window.location.href = 'login.html';
                 return;
             }

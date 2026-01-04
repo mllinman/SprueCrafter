@@ -127,7 +127,10 @@ function handleGuestLogin() {
     
     // Set guest flag
     localStorage.setItem('is_guest', 'true');
+    console.log('Guest mode set. Redirecting...');
     
-    // Redirect to dashboard
-    window.location.href = 'dashboard.html';
+    // Redirect to dashboard with small delay to ensure persistence
+    setTimeout(() => {
+        window.location.href = 'dashboard.html';
+    }, 100);
 }
