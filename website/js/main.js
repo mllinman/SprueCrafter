@@ -55,3 +55,67 @@ function formatCurrency(amount) {
         currency: 'USD'
     }).format(amount);
 }
+
+// Billing / Cashflow Functions
+async function handleSubscribe(priceId) {
+    const token = localStorage.getItem('auth_token');
+    
+    if (!token) {
+        // Redirect to login if not authenticated
+        window.location.href = 'login.html?redirect=pricing';
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/billing/create-checkout-session', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ price_id: priceId })
+        });
+        
+        const data = await response.json();
+        
+        if (data.checkoutUrl) {
+            // Redirect to Stripe Checkout
+            window.location.href = data.checkoutUrl;
+        } else {
+            console.error('Checkout error:', data.error);
+            alert('Unable to start checkout. Please try again.');
+        }
+    } catch (error) {
+        console.error('Network error:', error);
+        alert('Communication error. Please check connection.');
+    }
+}
+
+async function handleManageBilling() {
+    const token = localStorage.getItem('auth_token');
+    
+    // Check if user is logged in
+    if (!token) {
+        window.location.href = 'login.html';
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/billing/create-portal-session', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.portalUrl) {
+            window.location.href = data.portalUrl;
+        } else {
+            alert('Billing portal unavailable: ' + (data.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Portal error:', error);
+    }
+}

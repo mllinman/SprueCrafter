@@ -16,6 +16,7 @@ import tempfile
 import traceback
 import logging
 from datetime import datetime, timezone
+import stripe
 
 # Add src to path for imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -57,6 +58,9 @@ limiter = Limiter(
     default_limits=[config.RATELIMIT_DEFAULT] if config.RATELIMIT_ENABLED else [],
     storage_uri=config.RATELIMIT_STORAGE_URL if config.RATELIMIT_ENABLED else None
 )
+
+# Initialize Stripe
+stripe.api_key = config.STRIPE_SECRET_KEY
 
 # Configure logging
 logging.basicConfig(
@@ -496,6 +500,145 @@ def upload_to_marketplace():
     db.session.commit()
     
     return jsonify(item.to_dict()), 201
+
+
+# ==================== Billing / Cashflow Endpoints ====================
+
+@app.route('/api/billing/create-checkout-session', methods=['POST'])
+@token_required
+def create_checkout_session():
+    """Create a Stripe Checkout Session for subscription updates"""
+    try:
+        data = request.get_json()
+        price_id = data.get('price_id', config.STRIPE_PRO_PRICE_ID)
+        user = g.current_user
+
+        # Base URL for success/cancel redirects
+        domain_url = request.host_url.rstrip('/')
+
+        # Checkout session configuration
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price': price_id,
+                'quantity': 1,
+            }],
+            mode='subscription',
+            customer=user.stripe_customer_id if user.stripe_customer_id else None,
+            customer_email=user.email if not user.stripe_customer_id else None,
+            client_reference_id=user.id,
+            success_url=domain_url + '/dashboard.html?session_id={CHECKOUT_SESSION_ID}',
+            cancel_url=domain_url + '/pricing.html',
+            metadata={
+                'user_id': user.id
+            }
+        )
+
+        return jsonify({'checkoutUrl': checkout_session.url})
+    except Exception as e:
+        logger.error(f"Error creating checkout session: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/billing/create-portal-session', methods=['POST'])
+@token_required
+def create_portal_session():
+    """Create a Stripe Customer Portal session"""
+    try:
+        user = g.current_user
+        
+        if not user.stripe_customer_id:
+            return jsonify({'error': 'No billing account found'}), 400
+
+        # Base URL for return
+        domain_url = request.host_url.rstrip('/')
+
+        portal_session = stripe.billing_portal.Session.create(
+            customer=user.stripe_customer_id,
+            return_url=domain_url + '/dashboard.html',
+        )
+        
+        return jsonify({'portalUrl': portal_session.url})
+    except Exception as e:
+        logger.error(f"Error creating portal session: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/stripe/webhook', methods=['POST'])
+def stripe_webhook():
+    """Handle Stripe Webhooks"""
+    payload = request.get_data(as_text=True)
+    sig_header = request.headers.get('Stripe-Signature')
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, config.STRIPE_WEBHOOK_SECRET
+        )
+    except ValueError as e:
+        # Invalid payload
+        return 'Invalid payload', 400
+    except stripe.error.SignatureVerificationError as e:
+        # Invalid signature
+        return 'Invalid signature', 400
+
+    # Handle the event
+    if event['type'] == 'checkout.session.completed':
+        session = event['data']['object']
+        handle_checkout_session(session)
+    elif event['type'] == 'customer.subscription.updated':
+        subscription = event['data']['object']
+        handle_subscription_update(subscription)
+    elif event['type'] == 'customer.subscription.deleted':
+        subscription = event['data']['object']
+        handle_subscription_deleted(subscription)
+
+    return jsonify({'status': 'success'})
+
+
+def handle_checkout_session(session):
+    """Process a successful checkout session"""
+    client_reference_id = session.get('client_reference_id')
+    stripe_customer_id = session.get('customer')
+    stripe_subscription_id = session.get('subscription')
+
+    if client_reference_id:
+        user = User.query.get(client_reference_id)
+        if user:
+            user.stripe_customer_id = stripe_customer_id
+            user.stripe_subscription_id = stripe_subscription_id
+            user.plan = 'pro' # Assuming default upgrade is to pro
+            user.subscription_status = 'active'
+            db.session.commit()
+            logger.info(f"User {user.username} upgraded to Pro via Checkout")
+
+def handle_subscription_update(subscription):
+    """Sync subscription status from Stripe"""
+    stripe_customer_id = subscription.get('customer')
+    status = subscription.get('status')
+    
+    user = User.query.filter_by(stripe_customer_id=stripe_customer_id).first()
+    if user:
+        user.subscription_status = status
+        # If active, ensure plan is set correctly
+        if status == 'active':
+             # In a real app we might check product ID to determine plan level
+             user.plan = 'pro'
+        elif status in ['past_due', 'unpaid', 'canceled']:
+             # Don't demote immediately on past_due/canceled if period is active,
+             # but for MVP lets reflect status
+             pass
+        db.session.commit()
+
+def handle_subscription_deleted(subscription):
+    """Handle subscription cancellation"""
+    stripe_customer_id = subscription.get('customer')
+    user = User.query.filter_by(stripe_customer_id=stripe_customer_id).first()
+    if user:
+        user.plan = 'free'
+        user.subscription_status = 'canceled'
+        user.stripe_subscription_id = None
+        db.session.commit()
+        logger.info(f"User {user.username} subscription canceled")
 
 
 @app.route('/api/share/friends', methods=['POST'])

@@ -84,23 +84,56 @@
     <script src="js/main.js"></script>
     <script>
         // Dashboard logic
-        document.addEventListener('DOMContentLoaded', () => {
-            const user = JSON.parse(localStorage.getItem('user'));
-            if (!user) {
+        document.addEventListener('DOMContentLoaded', async () => {
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
                 window.location.href = 'login.html';
                 return;
             }
 
-            document.getElementById('user-name').textContent = user.name || user.email;
-            document.getElementById('welcome-name').textContent = (user.name || user.email).split(' ')[0];
-            
-            if (user.is_pro) {
-                const subStatus = document.getElementById('sub-status');
-                subStatus.textContent = 'Pro Plan';
-                subStatus.style.color = 'var(--accent-primary)';
-                document.querySelector('a[href="pricing.html"]').textContent = 'Manage Subscription';
+            // Fetch fresh user data to ensure subscription status is up to date
+            try {
+                const res = await fetch('/api/auth/me', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const user = await res.json();
+                    localStorage.setItem('user', JSON.stringify(user)); // Update cache
+                    
+                    updateDashboard(user);
+                } else {
+                    // Token might be expired
+                    logout();
+                }
+            } catch (e) {
+                console.error("Failed to refresh user data", e);
+                // Fallback to cached user
+                const cachedUser = JSON.parse(localStorage.getItem('user'));
+                if (cachedUser) updateDashboard(cachedUser);
             }
         });
+
+        function updateDashboard(user) {
+            document.getElementById('user-name').textContent = user.name || user.email;
+            document.getElementById('welcome-name').textContent = (user.name || user.email).split(' ')[0] || 'Creator';
+            
+            const subStatus = document.getElementById('sub-status');
+            const subBtn = document.querySelector('a[href="pricing.html"]'); // Upgrade button replacement container
+
+            if (user.is_pro || user.plan === 'pro') {
+                subStatus.textContent = 'Pro Plan (Active)';
+                subStatus.style.color = 'var(--accent-primary)';
+                
+                // Change upgrade button to manage billing button
+                subBtn.textContent = 'Manage Billing';
+                subBtn.removeAttribute('href');
+                subBtn.onclick = (e) => { e.preventDefault(); handleManageBilling(); };
+                subBtn.classList.remove('btn-primary');
+                subBtn.classList.add('btn-outline');
+            } else {
+                subStatus.textContent = 'Free Plan';
+            }
+        }
 
         function logout() {
             localStorage.removeItem('auth_token');
