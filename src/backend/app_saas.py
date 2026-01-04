@@ -74,14 +74,18 @@ os.makedirs(config.UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(config.TEMP_FOLDER, exist_ok=True)
 
 # Initialize Sentry for error tracking
-if config.SENTRY_DSN:
-    import sentry_sdk
-    from sentry_sdk.integrations.flask import FlaskIntegration
-    sentry_sdk.init(
-        dsn=config.SENTRY_DSN,
-        integrations=[FlaskIntegration()],
-        traces_sample_rate=1.0
-    )
+if config.SENTRY_DSN and config.SENTRY_DSN not in ['xxxxx', 'your-dsn-here', '']:
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.flask import FlaskIntegration
+        sentry_sdk.init(
+            dsn=config.SENTRY_DSN,
+            integrations=[FlaskIntegration()],
+            traces_sample_rate=1.0
+        )
+        logger.info("Sentry initialized successfully")
+    except Exception as e:
+        logger.warning(f"Failed to initialize Sentry: {e}")
 
 
 # Request hooks for tracking
