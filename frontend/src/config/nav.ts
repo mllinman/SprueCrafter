@@ -3,7 +3,8 @@ import {
   FolderOpen, 
   Database, 
   Settings, 
-  Printer
+  Printer,
+  Box
 } from "lucide-react"
 
 export const sidebarItems = [
@@ -16,6 +17,11 @@ export const sidebarItems = [
     title: "Projects",
     href: "/projects",
     icon: FolderOpen,
+  },
+  {
+    title: "Studio",
+    href: "/studio",
+    icon: Box,
   },
   {
     title: "Datasets",
