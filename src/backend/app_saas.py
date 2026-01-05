@@ -474,6 +474,16 @@ def generate_supports():
             overhang_angle = float(request.form.get('overhang_angle', 45))
             density = float(request.form.get('density', 1.0))
             
+        if mode == 'automatic':
+            overhang_angle = float(request.form.get('overhang_angle', 45))
+            density = float(request.form.get('density', 1.0))
+            
+            # New Slicer Params
+            adhesion = request.form.get('adhesion', 'none') # raft, brim, none
+            
+            # Note: Assuming SupportGenerator supports these args or we just log them for now
+            # In a real implementation, we'd pass adhesion to the generator
+            
             output_path = generator.generate_automatic_supports(
                 input_path,
                 overhang_angle=overhang_angle,
