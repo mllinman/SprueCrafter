@@ -4,28 +4,23 @@ export const metadata: Metadata = {
   title: "Dashboard - SprueCrafter",
 }
 
+import { Sidebar } from "@/components/layout/sidebar"
+import { Header } from "@/components/layout/header"
+
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
   return (
-    <div className="flex min-h-screen flex-col md:flex-row">
-      {/* Sidebar Placeholder */}
-      <aside className="w-full md:w-64 bg-muted/40 border-r p-6 hidden md:block">
-        <div className="font-bold text-lg mb-6">SprueCrafter</div>
-        <nav className="space-y-4">
-          <div className="font-medium">Dashboard</div>
-          <div className="text-muted-foreground">Projects</div>
-          <div className="text-muted-foreground">Datasets</div>
-          <div className="text-muted-foreground">Settings</div>
-        </nav>
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 p-6 md:p-8 pt-6">
-        {children}
-      </main>
+    <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
+      <Sidebar />
+      <div className="flex flex-col">
+        <Header />
+        <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+          {children}
+        </main>
+      </div>
     </div>
   )
 }
