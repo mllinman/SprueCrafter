@@ -22,7 +22,7 @@ import stripe
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from config import get_config
-from models import db, User, File, ProcessingJob, ApiUsage, MarketplaceItem, PrinterProfile
+from models import db, User, File, ProcessingJob, ApiUsage, MarketplaceItem, PrinterProfile, Dataset
 from auth import token_required, api_key_required, optional_auth, admin_required
 
 # Import existing core modules
@@ -909,6 +909,102 @@ def internal_error(error):
 @app.errorhandler(429)
 def ratelimit_handler(error):
     return jsonify({'error': 'Rate limit exceeded', 'message': str(error.description)}), 429
+
+
+
+# ==================== Dataset Management ====================
+
+@app.route('/api/datasets', methods=['GET'])
+@token_required
+def get_datasets(current_user):
+    """List all datasets for user"""
+    try:
+        datasets = Dataset.query.filter_by(user_id=current_user.id).order_by(Dataset.created_at.desc()).all()
+        return jsonify([d.to_dict() for d in datasets])
+    except Exception as e:
+        logger.error(f"Error fetching datasets: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+@app.route('/api/datasets', methods=['POST'])
+@token_required
+@limiter.limit("50 per hour")
+def upload_dataset(current_user):
+    """Upload and parse a CSV dataset"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file part'}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'No selected file'}), 400
+        
+        if not file.filename.lower().endswith('.csv'):
+            return jsonify({'error': 'Only CSV files are allowed'}), 400
+            
+        # Secure filename
+        from werkzeug.utils import secure_filename
+        original_filename = secure_filename(file.filename)
+        filename = f"{uuid.uuid4().hex}_{original_filename}"
+        filepath = os.path.join(config.UPLOAD_FOLDER, filename)
+        
+        file.save(filepath)
+        
+        # Parse CSV for metadata
+        import pandas as pd
+        try:
+            df = pd.read_csv(filepath)
+            row_count = len(df)
+            columns = df.columns.tolist()
+            file_size = os.path.getsize(filepath)
+        except Exception as csv_err:
+            if os.path.exists(filepath):
+                os.remove(filepath) # Cleanup
+            return jsonify({'error': f"Failed to parse CSV: {str(csv_err)}"}), 400
+            
+        # Create DB Entry
+        dataset = Dataset(
+            user_id=current_user.id,
+            filename=filename,
+            original_filename=original_filename,
+            row_count=row_count,
+            column_names=columns,
+            file_size=file_size,
+            storage_path=filepath
+        )
+        
+        db.session.add(dataset)
+        db.session.commit()
+        
+        return jsonify(dataset.to_dict()), 201
+        
+    except Exception as e:
+        logger.error(f"Dataset upload error: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/datasets/<dataset_id>', methods=['DELETE'])
+@token_required
+def delete_dataset(current_user, dataset_id):
+    """Delete a dataset"""
+    try:
+        dataset = Dataset.query.filter_by(id=dataset_id, user_id=current_user.id).first()
+        if not dataset:
+            return jsonify({'error': 'Dataset not found'}), 404
+            
+        # Remove file
+        if dataset.storage_path and os.path.exists(dataset.storage_path):
+            try:
+                os.remove(dataset.storage_path)
+            except OSError as e:
+                logger.error(f"Error deleting file {dataset.storage_path}: {e}")
+
+        db.session.delete(dataset)
+        db.session.commit()
+        
+        return jsonify({'message': 'Dataset deleted successfully'})
+        
+    except Exception as e:
+        logger.error(f"Dataset deletion error: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 # ==================== Website Serving ====================
