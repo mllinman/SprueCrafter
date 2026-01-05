@@ -1,15 +1,9 @@
-"use client"
-
-import { Menu } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { MobileNav } from "@/components/layout/mobile-nav"
 
 export function Header() {
   return (
     <header className="flex h-14 lg:h-[60px] items-center gap-4 border-b bg-muted/40 px-6">
-      <Button variant="outline" size="icon" className="md:hidden">
-        <Menu className="h-4 w-4" />
-        <span className="sr-only">Toggle navigation</span>
-      </Button>
+      <MobileNav />
       <div className="w-full flex-1">
         {/* Search Placeholder */}
         <form>

@@ -3,37 +3,8 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { 
-  LayoutDashboard, 
-  FolderOpen, 
-  Database, 
-  Settings, 
-  Printer, 
-  LogOut 
-} from "lucide-react"
-
-const sidebarItems = [
-  {
-    title: "Dashboard",
-    href: "/dashboard", // Using /dashboard as root for now, or just /
-    icon: LayoutDashboard,
-  },
-  {
-    title: "Projects",
-    href: "/projects",
-    icon: FolderOpen,
-  },
-  {
-    title: "Datasets",
-    href: "/datasets",
-    icon: Database,
-  },
-  {
-    title: "My Printers",
-    href: "/printers",
-    icon: Printer,
-  },
-]
+import { sidebarItems } from "@/config/nav"
+import { Settings, LogOut } from "lucide-react"
 
 export function Sidebar() {
   const pathname = usePathname()
