@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
-import { ProjectsTable } from "@/components/dashboard/projects-table" // Reusing for now for demo speed
+import { DatasetsTable } from "@/components/datasets/datasets-table"
 import { UploadDatasetModal } from "@/components/datasets/upload-modal"
 
 export default function DatasetsPage() {
@@ -20,8 +20,7 @@ export default function DatasetsPage() {
       </div>
 
       <div className="space-y-4">
-          {/* reusing projects table as placeholder for dataset table structure */}
-          <ProjectsTable /> 
+          <DatasetsTable /> 
       </div>
     </div>
   )

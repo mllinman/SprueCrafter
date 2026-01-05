@@ -4,7 +4,6 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import { toast } from "sonner"
 import { Upload, X, FileSpreadsheet } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -20,6 +19,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
+import { useUploadDataset } from "@/hooks/use-datasets"
 
 const formSchema = z.object({
   file: z.any()
@@ -30,7 +30,6 @@ const formSchema = z.object({
 
 export function UploadDatasetModal({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false)
-  const [uploading, setUploading] = useState(false)
   const [progress, setProgress] = useState(0)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
 
@@ -38,53 +37,37 @@ export function UploadDatasetModal({ children }: { children: React.ReactNode }) 
     resolver: zodResolver(formSchema),
   })
 
+  const { mutate, isPending } = useUploadDataset()
+
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setSelectedFile(e.target.files[0])
     }
   }
 
-  const onSubmit = async (data: z.infer<typeof formSchema>) => {
-    setUploading(true)
-    setProgress(0)
-
-    // Simulate upload progress
+  const onSubmit = (data: z.infer<typeof formSchema>) => {
+    // Basic fake progress for UX feel since Axios progress is tricky with current mock
+    setProgress(10)
     const interval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 95) {
-          clearInterval(interval)
-          return 95
-        }
-        return prev + 10
-      })
+        setProgress((prev) => (prev >= 90 ? 90 : prev + 10))
     }, 200)
 
-    try {
-      // Mock API call - Replace with real mutation later
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-      
-      clearInterval(interval)
-      setProgress(100)
-      
-      toast.success("Dataset uploaded successfully", {
-        description: `${selectedFile?.name} has been processed.`,
-      })
-      
-      setTimeout(() => {
-        setOpen(false)
-        reset()
-        setSelectedFile(null)
-        setUploading(false)
-        setProgress(0)
-      }, 500)
-
-    } catch (error) {
-       clearInterval(interval)
-       setUploading(false)
-       toast.error("Upload failed", {
-         description: "Please check your connection and try again."
-       })
-    }
+    mutate(data.file[0], {
+        onSuccess: () => {
+            clearInterval(interval)
+            setProgress(100)
+            setTimeout(() => {
+                setOpen(false)
+                reset()
+                setSelectedFile(null)
+                setProgress(0)
+            }, 500)
+        },
+        onError: () => {
+            clearInterval(interval)
+            setProgress(0)
+        }
+    })
   }
 
   return (
@@ -140,7 +123,7 @@ export function UploadDatasetModal({ children }: { children: React.ReactNode }) 
                             reset();
                             setSelectedFile(null);
                         }}
-                        disabled={uploading}
+                        disabled={isPending}
                     >
                         <X className="h-4 w-4" />
                     </Button>
@@ -151,7 +134,7 @@ export function UploadDatasetModal({ children }: { children: React.ReactNode }) 
             )}
           </div>
 
-          {uploading && (
+          {isPending && (
             <div className="space-y-2">
                 <div className="flex justify-between text-xs text-muted-foreground">
                     <span>Uploading...</span>
@@ -162,8 +145,8 @@ export function UploadDatasetModal({ children }: { children: React.ReactNode }) 
           )}
 
           <DialogFooter>
-            <Button type="submit" disabled={uploading}>
-              {uploading ? "Uploading..." : "Upload Dataset"}
+            <Button type="submit" disabled={isPending}>
+              {isPending ? "Uploading..." : "Upload Dataset"}
             </Button>
           </DialogFooter>
         </form>
