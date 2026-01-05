@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -19,18 +20,25 @@
             cursor: pointer;
             margin-top: 1rem;
         }
-        .upload-zone:hover, .upload-zone.highlight {
+
+        .upload-zone:hover,
+        .upload-zone.highlight {
             border-color: #00f2ff;
             background: rgba(0, 242, 255, 0.05);
         }
+
         .upload-zone i {
             font-size: 2.5rem;
             color: #64748b;
             margin-bottom: 1rem;
         }
+
         .lock-overlay {
             position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             background: rgba(15, 23, 42, 0.8);
             backdrop-filter: blur(4px);
             display: flex;
@@ -40,10 +48,21 @@
             border-radius: 16px;
             z-index: 5;
         }
-        .lock-overlay i { font-size: 1.5rem; color: #94a3b8; margin-bottom: 0.5rem; }
-        .lock-overlay p { color: #fff; margin-bottom: 1rem; font-size: 0.9rem; }
+
+        .lock-overlay i {
+            font-size: 1.5rem;
+            color: #94a3b8;
+            margin-bottom: 0.5rem;
+        }
+
+        .lock-overlay p {
+            color: #fff;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
     </style>
 </head>
+
 <body>
 
     <!-- Header -->
@@ -86,14 +105,14 @@
             <div class="dashboard-grid">
                 <!-- Upload Card -->
                 <div class="feature-card large">
-                     <div class="card-header">
+                    <div class="card-header">
                         <i class="fas fa-cloud-upload-alt icon"></i>
                         <h3>Quick Upload</h3>
                     </div>
                     <div id="upload-zone" class="upload-zone">
                         <p>Drop STL/OBJ files here</p>
                         <span class="sub-text">or click to browse</span>
-                        <input type="file" id="file-input" hidden accept=".stl,.obj">
+                        <input type="file" id="file-input" hidden accept=".stl,.obj,.fbx,.3ds,.ply,.gltf,.glb,.dae">
                     </div>
                     <div id="upload-status"></div>
                 </div>
@@ -109,7 +128,7 @@
                 </div>
 
                 <!-- Recent Projects (Placeholder) -->
-                 <div class="feature-card">
+                <div class="feature-card">
                     <div class="card-header">
                         <i class="fas fa-history icon"></i>
                         <h3>Recent Imports</h3>
@@ -124,4 +143,5 @@
     <script src="js/auth.js"></script>
     <script src="js/dashboard.js"></script>
 </body>
+
 </html>
