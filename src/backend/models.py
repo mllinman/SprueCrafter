@@ -87,6 +87,7 @@ class User(db.Model):
             'website': self.website,
             'plan': self.plan,
             'is_active': self.is_active,
+            'is_admin': self.is_admin,
             'workspace_color': self.workspace_color,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'last_login': self.last_login.isoformat() if self.last_login else None

@@ -9,33 +9,28 @@ import {
 
 export const sidebarItems = [
   {
-    title: "Dashboard",
+    title: "Overview",
     href: "/dashboard",
     icon: LayoutDashboard,
   },
   {
-    title: "Projects",
-    href: "/projects",
-    icon: FolderOpen,
-  },
-  {
     title: "Studio",
-    href: "/studio",
+    href: "/dashboard/studio",
     icon: Box,
   },
   {
     title: "Datasets",
-    href: "/datasets",
+    href: "/dashboard/datasets",
     icon: Database,
   },
   {
-    title: "Profiles",
-    href: "/profiles",
+    title: "Slicer Profiles",
+    href: "/dashboard/profiles",
     icon: Settings,
   },
   {
-    title: "My Printers",
-    href: "/printers",
+    title: "Printers",
+    href: "/dashboard/printers",
     icon: Printer,
   },
 ]
