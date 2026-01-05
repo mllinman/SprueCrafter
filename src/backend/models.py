@@ -279,3 +279,44 @@ class ApiUsage(db.Model):
             'response_time': self.response_time,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
+
+
+class Dataset(db.Model):
+    """Dataset upload tracking model for CSV files"""
+    __tablename__ = 'datasets'
+    
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False, index=True)
+    
+    filename = db.Column(db.String(255), nullable=False)
+    original_filename = db.Column(db.String(255), nullable=False)
+    
+    # Metadata
+    row_count = db.Column(db.Integer, default=0)
+    column_names = db.Column(db.JSON)  # List of column headers
+    file_size = db.Column(db.BigInteger)
+    
+    # Storage
+    storage_path = db.Column(db.String(512))
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'filename': self.filename,
+            'row_count': self.row_count,
+            'columns': self.column_names,
+            'file_size': self.format_size(),
+            'created_at': self.created_at.isoformat()
+        }
+
+    def format_size(self):
+        # Helper to format bytes
+        size = self.file_size or 0
+        for unit in ['B', 'KB', 'MB', 'GB']:
+            if size < 1024.0:
+                return f"{size:.1f} {unit}"
+            size /= 1024.0
+        return f"{size:.1f} TB"
