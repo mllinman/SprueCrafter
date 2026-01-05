@@ -135,6 +135,17 @@ header .container {
   gap: 2rem;
 }
 
+/* Mobile Menu Button */
+.mobile-menu-btn {
+  display: none;
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+}
+
 .nav-links a:hover {
   color: var(--accent-primary);
 }
@@ -533,7 +544,29 @@ footer {
     grid-template-columns: 1fr;
   }
   
+  .mobile-menu-btn {
+    display: block;
+  }
+
+  /* Mobile Slide-out Menu */
   .nav-links {
-    display: none; /* Add mobile menu logic later */
+    position: fixed;
+    top: var(--header-height);
+    right: -100%;
+    width: 100%; /* Full width or 70% */
+    height: calc(100vh - var(--header-height));
+    background: var(--bg-tertiary);
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+    transition: 0.3s ease-in-out;
+    border-left: 1px solid var(--border-color);
+    padding: 2rem;
+    backdrop-filter: blur(10px);
+  }
+
+  .nav-links.active {
+    right: 0;
   }
 }

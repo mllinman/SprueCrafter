@@ -390,6 +390,177 @@ def scale_model():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/separate', methods=['POST'])
+@optional_auth
+@limiter.limit("20 per hour")
+def separate_parts():
+    """Automatically separate model into parts"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
+        
+        file = request.files['file']
+        
+        # Save uploaded file
+        input_path = os.path.join(config.UPLOAD_FOLDER, file.filename)
+        file.save(input_path)
+        
+        # Separate parts
+        separator = PartSeparator()
+        parts_info = separator.separate_and_categorize(input_path)
+        
+        return jsonify(parts_info)
+    
+    except Exception as e:
+        logger.error(f"Error in separate_parts: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/generate-sprue', methods=['POST'])
+@optional_auth
+@limiter.limit("10 per hour")
+def generate_sprue():
+    """Generate sprue layout for resin printing"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
+        
+        file = request.files['file']
+        
+        # Get parameters
+        build_plate_x = float(request.form.get('build_plate_x', 192))
+        build_plate_y = float(request.form.get('build_plate_y', 120))
+        build_plate_z = float(request.form.get('build_plate_z', 245))
+        connector_type = request.form.get('connector_type', 'cylindrical').lower()
+        
+        # Save uploaded file
+        input_path = os.path.join(config.UPLOAD_FOLDER, file.filename)
+        file.save(input_path)
+        
+        # Generate sprue
+        generator = SprueGenerator()
+        sprue_file = generator.generate(
+            input_path, 
+            (build_plate_x, build_plate_y, build_plate_z),
+            connector_type=connector_type
+        )
+        
+        return send_file(sprue_file, as_attachment=True)
+        
+    except Exception as e:
+        logger.error(f"Error in generate_sprue: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/generate-supports', methods=['POST'])
+@optional_auth
+@limiter.limit("20 per hour")
+def generate_supports():
+    """Generate support structures for 3D printing"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
+        
+        file = request.files['file']
+        mode = request.form.get('mode', 'automatic').lower()
+        
+        # Save uploaded file
+        input_path = os.path.join(config.UPLOAD_FOLDER, file.filename)
+        file.save(input_path)
+        
+        generator = SupportGenerator()
+        
+        if mode == 'automatic':
+            overhang_angle = float(request.form.get('overhang_angle', 45))
+            density = float(request.form.get('density', 1.0))
+            
+            output_path = generator.generate_automatic_supports(
+                input_path,
+                overhang_angle=overhang_angle,
+                density=density
+            )
+        elif mode == 'estimate':
+            analysis = generator.estimate_support_requirements(input_path)
+            return jsonify(analysis)
+        else:
+            return jsonify({'error': 'Manual mode not supported in API yet'}), 400
+        
+        return send_file(output_path, as_attachment=True)
+        
+    except Exception as e:
+        logger.error(f"Error in generate_supports: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/transform', methods=['POST'])
+@optional_auth
+def transform_model():
+    """Transform 3D model (rotate, translate, scale)"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
+        
+        file = request.files['file']
+        operation = request.form.get('operation', 'rotate').lower()
+        
+        # Save uploaded file
+        input_path = os.path.join(config.UPLOAD_FOLDER, file.filename)
+        file.save(input_path)
+        
+        transformer = Transformer()
+        
+        if operation == 'rotate':
+            axis = request.form.get('axis', 'z').lower()
+            angle = float(request.form.get('angle', 0))
+            output_path = transformer.transform(input_path, 'rotate', axis=axis, angle=angle)
+            
+        elif operation == 'translate':
+            x = float(request.form.get('x', 0))
+            y = float(request.form.get('y', 0))
+            z = float(request.form.get('z', 0))
+            output_path = transformer.transform(input_path, 'translate', x=x, y=y, z=z)
+            
+        elif operation == 'scale':
+            factor = float(request.form.get('factor', 1.0))
+            output_path = transformer.transform(input_path, 'scale', factor=factor)
+            
+        else:
+            return jsonify({'error': f'Invalid operation: {operation}'}), 400
+            
+        return send_file(output_path, as_attachment=True)
+        
+    except Exception as e:
+        logger.error(f"Error in transform_model: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/photo-to-model', methods=['POST'])
+@token_required
+@limiter.limit("5 per hour")
+def photo_to_model():
+    """Convert photographs to 3D model (Pro only)"""
+    try:
+        if 'files' not in request.files:
+            return jsonify({'error': 'No files provided'}), 400
+        
+        files = request.files.getlist('files')
+        
+        photo_paths = []
+        for file in files:
+            photo_path = os.path.join(config.UPLOAD_FOLDER, file.filename)
+            file.save(photo_path)
+            photo_paths.append(photo_path)
+        
+        converter = PhotoToModel()
+        model_path = converter.convert(photo_paths)
+        
+        return send_file(model_path, as_attachment=True)
+        
+    except Exception as e:
+        logger.error(f"Error in photo_to_model: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
 # Note: Including all original endpoints with authentication
 # For brevity, I'll add the key endpoints. The pattern is the same.
 
