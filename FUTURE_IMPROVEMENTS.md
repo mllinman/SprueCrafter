@@ -8,6 +8,10 @@ This document outlines potential future enhancements and add-ons for SprueCrafte
 
 ## 🎯 Priority Features
 
+> [!NOTE]
+> **COMPLETED**: Backend Architecture Upgrade (Jan 2026)
+> switched from limited `app_web.py` to full-featured `app_saas.py` for local development, enabling Authentication and Database features.
+
 ### 1. Advanced Support Features
 *Inspired by: Lychee Slicer, PrusaSlicer, Chitubox, Voxeldance Tango*
 

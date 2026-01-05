@@ -258,8 +258,8 @@ def refresh():
 def get_current_user():
     """Get current user information and settings"""
     user_dict = g.current_user.to_dict()
-    # Include pro status explicitly
-    user_dict['is_pro'] = g.current_user.plan == 'pro'
+    # Include pro status explicitly (Admins get free Pro access for testing)
+    user_dict['is_pro'] = g.current_user.plan == 'pro' or g.current_user.is_admin
     return jsonify(user_dict)
 
 

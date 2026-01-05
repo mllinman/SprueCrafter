@@ -3,7 +3,9 @@
  * Handles shared functionality like navigation, auth state, and specialized interactions.
  */
 
-const API_BASE = 'https://your-api-url.railway.app/api'; // Replace with actual API URL
+// API Configuration
+const API_BASE = ''; // Using relative paths for same-origin serving
+
 
 document.addEventListener('DOMContentLoaded', () => {
     checkAuthState();
@@ -11,23 +13,40 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function checkAuthState() {
-    const token = localStorage.getItem('auth_token');
+    const isLoggedIn = localStorage.getItem('auth_token');
     const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const isGuest = localStorage.getItem('is_guest');
     const navLinks = document.querySelector('.nav-links');
 
-    if (token && user) {
-        // User is logged in
-        // Update nav to show "Dashboard" instead of "Log In"
+    if (!navLinks) return; // Guard clause if nav doesn't exist on page
+
+    if (isLoggedIn || isGuest) {
+        // User is logged in or guest
         const loginBtn = navLinks.querySelector('a[href="login.html"]');
         if (loginBtn) {
             loginBtn.textContent = 'Dashboard';
             loginBtn.href = 'dashboard.html';
             loginBtn.classList.remove('btn-outline');
-            loginBtn.classList.add('btn-primary'); // Highlight dashboard
+            loginBtn.classList.add('btn-primary');
         }
         
-        // Remove "Get Pro" if they are already pro, or change to "Manage"?
-        // For now, let's keep it simple.
+        // Add Logout Button if not present
+        if (!document.getElementById('nav-logout')) {
+            const logoutLi = document.createElement('li');
+            logoutLi.innerHTML = `<a href="#" id="nav-logout" style="color: var(--text-secondary);">Logout</a>`;
+            navLinks.appendChild(logoutLi);
+            
+            logoutLi.querySelector('a').addEventListener('click', (e) => {
+                e.preventDefault();
+                // If Auth module is loaded, use it, else manual partial cleanup
+                if (window.Auth) {
+                    window.Auth.logout();
+                } else {
+                    localStorage.clear();
+                    window.location.href = 'index.html';
+                }
+            });
+        }
     }
 }
 
@@ -91,6 +110,8 @@ async function handleSubscribe(priceId) {
     }
 }
 
+window.handleManageBillingMain = handleManageBilling;
+
 async function handleManageBilling() {
     const token = localStorage.getItem('auth_token');
     
@@ -120,17 +141,12 @@ async function handleManageBilling() {
     }
 }
 
+// Guest Login Handler (Deprecated here, moved to Auth.js but kept for compatibility if needed)
 function handleGuestLogin() {
-    // Clear existing auth
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user');
-    
-    // Set guest flag
-    localStorage.setItem('is_guest', 'true');
-    console.log('Guest mode set. Redirecting...');
-    
-    // Redirect to dashboard with small delay to ensure persistence
-    setTimeout(() => {
+   if (window.Auth) {
+       window.Auth.continueAsGuest();
+   } else {
+        localStorage.setItem('is_guest', 'true');
         window.location.href = 'dashboard.html';
-    }, 100);
+   }
 }

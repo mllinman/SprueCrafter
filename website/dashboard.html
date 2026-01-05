@@ -3,11 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - SprueCrafter</title>
+    <title>Studio - SprueCrafter</title>
     <link rel="stylesheet" href="css/main.css">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        .upload-zone {
+            border: 2px dashed rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.02);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            margin-top: 1rem;
+        }
+        .upload-zone:hover, .upload-zone.highlight {
+            border-color: #00f2ff;
+            background: rgba(0, 242, 255, 0.05);
+        }
+        .upload-zone i {
+            font-size: 2.5rem;
+            color: #64748b;
+            margin-bottom: 1rem;
+        }
+        .lock-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(4px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 16px;
+            z-index: 5;
+        }
+        .lock-overlay i { font-size: 1.5rem; color: #94a3b8; margin-bottom: 0.5rem; }
+        .lock-overlay p { color: #fff; margin-bottom: 1rem; font-size: 0.9rem; }
+    </style>
 </head>
 <body>
     <header>
@@ -24,170 +59,72 @@
                         </linearGradient>
                     </defs>
                 </svg>
-                SprueCrafter
+                SprueCrafter Studio
             </a>
             <div style="display: flex; align-items: center; gap: 1rem;">
                 <span id="user-name" style="color: var(--text-secondary);">User</span>
-                <button onclick="logout()" class="btn btn-outline" style="padding: 0.5rem 1rem; font-size: 0.9rem;">Log Out</button>
+                <button onclick="Auth.logout()" class="btn btn-outline" style="padding: 0.5rem 1rem; font-size: 0.9rem;">Log Out</button>
             </div>
         </div>
     </header>
 
-    <section class="hero" style="min-height: auto; padding-top: calc(var(--header-height) + 2rem); padding-bottom: 2rem;">
+    <section class="hero" style="min-height: auto; padding-top: calc(var(--header-height) + 2rem); padding-bottom: 1rem;">
         <div class="container">
-            <h1>Welcome back, <span id="welcome-name" class="text-gradient">Creator</span></h1>
-            <p style="color: var(--text-secondary);">Manage your subscription, printers, and downloads.</p>
+            <h1>Let's Create, <span id="welcome-name" class="text-gradient">Creator</span></h1>
+            <p style="color: var(--text-secondary);">Upload a model to start generating sprues.</p>
         </div>
     </section>
 
     <section class="dashboard-content" style="padding-bottom: 6rem;">
         <div class="container">
             <div class="features-grid">
-                <!-- Status Card -->
-                <div class="feature-card">
-                    <div class="feature-icon"><i class="fas fa-id-card"></i></div>
-                    <h3>Subscription Status</h3>
-                    <p id="sub-status" style="font-size: 1.2rem; font-weight: 600; margin: 0.5rem 0;">Free Plan</p>
-                    <a href="pricing.html" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Upgrade to Pro</a>
+                
+                <!-- Main Action: Upload/New Project (Takes mostly 2/3 width ideally, but grid is 1x for now) -->
+                <div class="feature-card" style="grid-column: span 2; min-height: 300px;">
+                    <div class="feature-icon"><i class="fas fa-cube"></i></div>
+                    <h3>New Project</h3>
+                    <p>Start a new sprue generation job. Supports .STL and .OBJ.</p>
+                    
+                    <div id="upload-zone" class="upload-zone">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p style="font-weight: 500; color: #fff;">Drop your model here</p>
+                        <p style="font-size: 0.85rem; color: #64748b;">or click to browse</p>
+                        <input type="file" id="file-input" hidden accept=".stl,.obj">
+                    </div>
+                    
+                    <div id="upload-status" style="margin-top: 1rem; display: none; background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px;"></div>
                 </div>
 
-                <!-- Download Card -->
-                <div class="feature-card">
-                    <div class="feature-icon"><i class="fas fa-download"></i></div>
-                    <h3>Download App</h3>
-                    <p>Get the latest version of SprueCrafter for your desktop.</p>
-                    <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-                        <a href="downloads.html" class="btn btn-outline" style="flex: 1;"><i class="fab fa-windows"></i> Win</a>
-                        <a href="downloads.html" class="btn btn-outline" style="flex: 1;"><i class="fab fa-linux"></i> Lin</a>
+                <!-- Sidebar column -->
+                <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                    <!-- Status Card -->
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-gem"></i></div>
+                        <h3>Membership</h3>
+                        <p id="sub-status" style="font-size: 1.2rem; font-weight: 600; margin: 0.5rem 0 1rem;">Loading...</p>
+                        <div id="sub-action-area">
+                            <!-- Injected by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Custom Printers Card -->
+                    <div class="feature-card" id="printers-card">
+                        <div class="card-content">
+                            <div class="feature-icon"><i class="fas fa-print"></i></div>
+                            <h3>My Printers</h3>
+                            <p>Manage your custom machine profiles.</p>
+                            <button class="btn btn-outline" style="width: 100%; margin-top: 1rem;" disabled>Coming Soon</button>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Custom Printers Card -->
-                <div class="feature-card">
-                    <div class="feature-icon"><i class="fas fa-print"></i></div>
-                    <h3>My Printers</h3>
-                    <p>You have <span style="color: var(--accent-primary);">0</span> custom printer profiles saved.</p>
-                    <button class="btn btn-outline" style="width: 100%; margin-top: 1rem;" disabled>Manage in App</button>
-                </div>
             </div>
         </div>
     </section>
 
-    <footer>
-        <div class="container">
-            <div class="footer-copy">
-                &copy; 2024 SprueCrafter. All rights reserved.
-            </div>
-        </div>
-    </footer>
-
+    <!-- Essential Scripts -->
+    <script src="js/auth.js"></script>
     <script src="js/main.js"></script>
-    <script>
-        // Dashboard logic
-        document.addEventListener('DOMContentLoaded', async () => {
-            const token = localStorage.getItem('auth_token');
-            const isGuest = localStorage.getItem('is_guest') === 'true';
-            
-            if (!token && !isGuest) {
-                // DEBUG: Alert user why they are being redirected
-                alert(`Debug: Redirecting to login. Token=${token ? 'Yes' : 'No'}, Guest=${isGuest}`);
-                window.location.href = 'login.html';
-                return;
-            }
-
-            if (isGuest) {
-                 updateDashboardAsGuest();
-                 return;
-            }
-
-            // Fetch fresh user data to ensure subscription status is up to date
-            try {
-                const res = await fetch('/api/auth/me', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (res.ok) {
-                    const user = await res.json();
-                    localStorage.setItem('user', JSON.stringify(user)); // Update cache
-                    
-                    updateDashboard(user);
-                } else {
-                    console.error('Auth Check Failed:', res.status);
-                    if (res.status === 401 || res.status === 403) {
-                         // Token is definitely invalid/expired
-                         logout();
-                    } else {
-                        // Server error or other issue - don't logout, just show cached data if possible or alert
-                        console.warn('Server error checking auth, staying logged in with cached data');
-                        const cachedUser = JSON.parse(localStorage.getItem('user'));
-                        if (cachedUser) updateDashboard(cachedUser);
-                    }
-                }
-            } catch (e) {
-                console.error("Failed to refresh user data", e);
-                // Fallback to cached user
-                const cachedUser = JSON.parse(localStorage.getItem('user'));
-                if (cachedUser) updateDashboard(cachedUser);
-            }
-        });
-
-        function updateDashboardAsGuest() {
-            document.getElementById('user-name').textContent = 'Guest';
-            document.getElementById('welcome-name').textContent = 'Guest';
-            
-            // Modify Status Card
-            document.getElementById('sub-status').textContent = 'Guest Mode';
-            const subBtn = document.querySelector('a[href="pricing.html"]');
-            subBtn.textContent = 'Create Account';
-            subBtn.href = 'login.html'; // Or register
-            
-            // Disable Printers Card
-            const printersCard = document.querySelectorAll('.feature-card')[2]; // 3rd card
-            printersCard.querySelector('p').innerHTML = 'Sign in to save custom profiles.';
-            printersCard.querySelector('button').textContent = 'Login to Manage';
-            printersCard.querySelector('button').onclick = () => window.location.href = 'login.html';
-            printersCard.querySelector('button').disabled = false;
-            
-            // Hide Download Card (User requested to hide downloads)
-            const downloadCard = document.querySelectorAll('.feature-card')[1];
-            if (downloadCard) downloadCard.style.display = 'none';
-
-            // Update Logout to Login
-            const logoutBtn = document.querySelector('header button');
-            logoutBtn.textContent = 'Log In / Sign Up';
-            logoutBtn.onclick = () => window.location.href = 'login.html';
-        }
-
-        function updateDashboard(user) {
-            document.getElementById('user-name').textContent = user.name || user.email;
-            document.getElementById('welcome-name').textContent = (user.name || user.email).split(' ')[0] || 'Creator';
-            
-            // Hide Download Card (User requested to hide downloads globally for now)
-            const downloadCard = document.querySelectorAll('.feature-card')[1];
-            if (downloadCard) downloadCard.style.display = 'none';
-            
-            const subStatus = document.getElementById('sub-status');
-            const subBtn = document.querySelector('a[href="pricing.html"]'); // Upgrade button replacement container
-
-            if (user.is_pro || user.plan === 'pro') {
-                subStatus.textContent = 'Pro Plan (Active)';
-                subStatus.style.color = 'var(--accent-primary)';
-                
-                // Change upgrade button to manage billing button
-                subBtn.textContent = 'Manage Billing';
-                subBtn.removeAttribute('href');
-                subBtn.onclick = (e) => { e.preventDefault(); handleManageBilling(); };
-                subBtn.classList.remove('btn-primary');
-                subBtn.classList.add('btn-outline');
-            } else {
-                subStatus.textContent = 'Free Plan';
-            }
-        }
-
-        function logout() {
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('user');
-            window.location.href = 'index.html';
-        }
-    </script>
+    <script src="js/dashboard.js"></script>
 </body>
 </html>
