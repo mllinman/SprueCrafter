@@ -101,3 +101,5 @@ coverage/
 # Cache directories
 .cache/
 .parcel-cache/
+
+!frontend/src/lib/
