@@ -23,6 +23,11 @@ export const sidebarItems = [
     icon: Database,
   },
   {
+    title: "Profiles",
+    href: "/profiles",
+    icon: Settings,
+  },
+  {
     title: "My Printers",
     href: "/printers",
     icon: Printer,
