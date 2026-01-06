@@ -1,7 +1,7 @@
 # Dockerfile.web - Web Application Container for SprueCrafter
-# Multi-stage build for optimized production image
+# Production-ready Docker image for web deployment
 
-FROM python:3.11-slim AS base
+FROM python:3.11-slim
 
 # Set working directory
 WORKDIR /app
@@ -19,12 +19,12 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install Python dependencies
-COPY requirements.txt requirements.prod.txt ./
+# Note: requirements.txt includes all production dependencies (gunicorn, etc.)
+COPY requirements.txt ./
 RUN pip install --no-cache-dir --trusted-host pypi.org --trusted-host files.pythonhosted.org -r requirements.txt
 
 # Copy application source code
 COPY src/ ./src/
-COPY runtime.txt ./
 
 # Create upload directory for temporary files
 RUN mkdir -p /tmp/sprucecrafter-uploads
