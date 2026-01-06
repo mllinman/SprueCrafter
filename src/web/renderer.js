@@ -134,6 +134,9 @@ function initializeNavigation() {
       // Close mobile menu after navigation on small screens
       if (window.innerWidth <= MOBILE_BREAKPOINT && sidebar) {
         sidebar.classList.remove('active');
+        if (mobileMenuToggle) {
+          mobileMenuToggle.setAttribute('aria-expanded', 'false');
+        }
       }
     });
   });
@@ -142,6 +145,9 @@ function initializeNavigation() {
   if (mobileMenuToggle && sidebar) {
     mobileMenuToggle.addEventListener('click', () => {
       sidebar.classList.toggle('active');
+      // Update aria-expanded for accessibility
+      const isExpanded = sidebar.classList.contains('active');
+      mobileMenuToggle.setAttribute('aria-expanded', isExpanded.toString());
     });
 
     // Close sidebar when clicking outside on mobile
@@ -153,6 +159,7 @@ function initializeNavigation() {
         !mobileMenuToggle.contains(e.target)
       ) {
         sidebar.classList.remove('active');
+        mobileMenuToggle.setAttribute('aria-expanded', 'false');
       }
     });
   }
