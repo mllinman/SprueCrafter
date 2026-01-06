@@ -140,6 +140,17 @@
             </svg>
             <span>Photo2Model</span>
           </button>
+          
+          <button class="nav-btn" data-tab="notes">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+            <span>Print Notes</span>
+          </button>
         </nav>
       </aside>
 
@@ -290,6 +301,36 @@
           <!-- Transform Tab -->
           <div class="tab-content" id="transform-tab">
             <h2>Transform</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 20px; font-size: 14px;">Move, rotate, and scale your model with precise control. Use the viewport controls or numeric inputs.</p>
+            
+            <div class="form-group">
+              <label>
+                <input type="checkbox" id="snap-enabled" checked> Enable Snapping
+              </label>
+            </div>
+            
+            <div id="snap-options" class="transform-section">
+              <h3>Snapping Options</h3>
+              <div class="form-group">
+                <label>Snap Mode</label>
+                <select id="snap-mode" class="form-control">
+                  <option value="grid">Grid Snapping</option>
+                  <option value="angle">Angle Snapping</option>
+                  <option value="both">Both Grid & Angle</option>
+                </select>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Grid Size (mm)</label>
+                  <input type="number" id="snap-grid-size" class="form-control" value="5" min="0.1" step="0.1">
+                </div>
+                <div class="form-group">
+                  <label>Angle Step (°)</label>
+                  <input type="number" id="snap-angle-step" class="form-control" value="15" min="1" max="90" step="1">
+                </div>
+              </div>
+              <button class="btn-secondary" style="width: 100%; margin-bottom: 10px;" id="snap-to-base-btn">Snap to Plate Base</button>
+            </div>
             
             <div class="transform-section">
               <h3>Rotate</h3>
@@ -327,6 +368,17 @@
                 </div>
               </div>
               <button class="btn-secondary" style="width: 100%" id="translate-model-btn">Apply Offset</button>
+            </div>
+            
+            <div class="transform-section">
+              <h3>Scale</h3>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Scale Factor</label>
+                  <input type="number" id="scale-factor" class="form-control" value="1.0" min="0.01" step="0.1">
+                </div>
+              </div>
+              <button class="btn-secondary" style="width: 100%" id="scale-model-btn">Apply Scale</button>
             </div>
             
             <div id="transform-status" class="status-message"></div>
@@ -426,6 +478,66 @@
             <div id="photo-status" class="status-message"></div>
           </div>
 
+          <!-- Print Notes Tab -->
+          <div class="tab-content" id="notes-tab">
+            <h2>Print Notes</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 20px; font-size: 14px;">Keep track of your prints for your personal database or journal.</p>
+            
+            <div class="form-group">
+              <label>Model Name</label>
+              <input type="text" id="note-model-name" class="form-control" placeholder="Enter model name">
+            </div>
+            
+            <div class="form-group">
+              <label>Model Type</label>
+              <input type="text" id="note-model-type" class="form-control" placeholder="e.g., Tank, Figure, Terrain">
+            </div>
+            
+            <div class="form-group">
+              <label>Model Scale</label>
+              <input type="text" id="note-model-scale" class="form-control" placeholder="e.g., 1/35, 1/48">
+            </div>
+            
+            <div class="form-group">
+              <label>Printer Used</label>
+              <input type="text" id="note-printer" class="form-control" placeholder="Select from Printers tab or enter custom">
+            </div>
+            
+            <div class="form-group">
+              <label>Resin Brand & Type</label>
+              <input type="text" id="note-resin" class="form-control" placeholder="e.g., Elegoo ABS-Like Grey">
+            </div>
+            
+            <div class="form-group">
+              <label>Print Time</label>
+              <input type="text" id="note-print-time" class="form-control" placeholder="e.g., 4h 30m">
+            </div>
+            
+            <div class="form-group">
+              <label>Room Temperature</label>
+              <div class="form-row">
+                <input type="number" id="note-temp-value" class="form-control" placeholder="Temperature" style="flex: 2;">
+                <select id="note-temp-unit" class="form-control" style="flex: 1;">
+                  <option value="F">°F</option>
+                  <option value="C">°C</option>
+                </select>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label>Additional Notes</label>
+              <textarea id="note-additional" class="form-control" rows="4" placeholder="Any additional notes about this print..."></textarea>
+            </div>
+            
+            <button class="btn-primary" id="save-note-btn">Save Note</button>
+            <div id="note-status" class="status-message"></div>
+            
+            <div id="notes-list" class="notes-list" style="margin-top: 30px;">
+              <h3 style="color: var(--text-secondary); font-size: 14px; margin-bottom: 12px;">Print History</h3>
+              <div id="notes-history"></div>
+            </div>
+          </div>
+
           <!-- Settings Tab -->
       <div id="settings-tab" class="tab-content">
         <div class="tab-header">
@@ -490,6 +602,19 @@
       <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
     </svg>
     <span>Pro Active</span>
+  </div>
+
+  <!-- Model Bounds Warning Dialog -->
+  <div id="bounds-warning-dialog" class="dialog-overlay hidden">
+    <div class="dialog-box">
+      <h3 style="color: #ff6b6b; margin-bottom: 16px;">⚠️ Model Exceeds Build Plate</h3>
+      <p style="color: var(--text-secondary); margin-bottom: 20px;">The imported model extends beyond the selected printer's build plate dimensions.</p>
+      <div id="bounds-details" style="background: rgba(255, 107, 107, 0.1); padding: 12px; border-radius: 6px; margin-bottom: 20px; font-size: 13px;"></div>
+      <p style="color: var(--text-secondary); margin-bottom: 20px;">Please scale down the model or use a larger printer before proceeding to print.</p>
+      <div style="display: flex; gap: 10px; justify-content: flex-end;">
+        <button id="bounds-warning-close" class="btn btn-primary">Close</button>
+      </div>
+    </div>
   </div>
 
   <script src="renderer.js"></script>

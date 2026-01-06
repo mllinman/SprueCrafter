@@ -82,6 +82,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initializeSprue();
   initializePhoto();
   initializePrinterProfiles(); // Added this call
+  initializeNotes(); // New notes functionality
+  initializeBoundsWarning(); // New bounds checking
   checkBackendStatus();
 
   // Initialize 3D Viewer (only if THREE is available)
@@ -322,6 +324,9 @@ function createPrinterPlate(width, depth, height) {
 
   scene.add(printerPlate);
 
+  // Update build plate reference for bounds checking
+  updateBuildPlateReference(width, depth, height);
+
   // Lock camera to build plate center and adjust distance based on size
   lockCameraToBuildPlate(width, depth, height);
 }
@@ -454,10 +459,11 @@ async function loadModelToViewer(fileSource) {
       transformControls.attach(currentModel);
     }
 
-    // Adjust camera to fit
-    const maxDim = Math.max(size.x, size.y, size.z);
-    camera.position.set(maxDim * 2, maxDim * 2, maxDim * 2);
-    controls.target.set(0, size.y / 2, 0);
+    // Check model bounds against build plate
+    checkModelBounds(currentModel);
+
+    // Lock camera to model
+    lockCameraToObject(currentModel);
 
     updateStatus('Model loaded in viewport', 'success');
   } catch (error) {
@@ -712,6 +718,90 @@ function displayPartsInfo(data) {
 function initializeTransform() {
   const rotateBtn = document.getElementById('rotate-model-btn');
   const translateBtn = document.getElementById('translate-model-btn');
+  const scaleBtn = document.getElementById('scale-model-btn');
+  const snapToBaseBtn = document.getElementById('snap-to-base-btn');
+  const snapEnabled = document.getElementById('snap-enabled');
+  
+  // Initialize snapping state
+  let snappingEnabled = true;
+  let snapGridSize = 5;
+  let snapAngleStep = 15;
+  
+  // Snap toggle handler
+  if (snapEnabled) {
+    snapEnabled.addEventListener('change', (e) => {
+      snappingEnabled = e.target.checked;
+      const snapOptions = document.getElementById('snap-options');
+      if (snapOptions) {
+        snapOptions.style.opacity = snappingEnabled ? '1' : '0.5';
+      }
+      updateStatus(snappingEnabled ? 'Snapping enabled' : 'Snapping disabled', 'info');
+    });
+  }
+  
+  // Snap settings handlers
+  const snapGridInput = document.getElementById('snap-grid-size');
+  const snapAngleInput = document.getElementById('snap-angle-step');
+  
+  if (snapGridInput) {
+    snapGridInput.addEventListener('change', (e) => {
+      snapGridSize = parseFloat(e.target.value);
+    });
+  }
+  
+  if (snapAngleInput) {
+    snapAngleInput.addEventListener('change', (e) => {
+      snapAngleStep = parseFloat(e.target.value);
+    });
+  }
+  
+  // Snap to base functionality
+  if (snapToBaseBtn) {
+    snapToBaseBtn.addEventListener('click', () => {
+      if (currentModel && scene) {
+        // Calculate model bounds
+        const box = new THREE.Box3().setFromObject(currentModel);
+        const minY = box.min.y;
+        
+        // Move model so its bottom is at y=0 (plate base)
+        currentModel.position.y -= minY;
+        
+        updateStatus('Model snapped to plate base', 'success');
+      } else {
+        showStatus('transform-status', 'No model loaded', 'error');
+      }
+    });
+  }
+  
+  // Apply snapping to a value
+  function applySnapping(value, snapSize) {
+    if (!snappingEnabled) return value;
+    return Math.round(value / snapSize) * snapSize;
+  }
+  
+  // Update transform controls with snapping
+  if (transformControls) {
+    transformControls.addEventListener('objectChange', () => {
+      if (!currentModel || !snappingEnabled) return;
+      
+      const snapMode = document.getElementById('snap-mode')?.value || 'both';
+      
+      if (snapMode === 'grid' || snapMode === 'both') {
+        // Apply position snapping
+        currentModel.position.x = applySnapping(currentModel.position.x, snapGridSize);
+        currentModel.position.y = applySnapping(currentModel.position.y, snapGridSize);
+        currentModel.position.z = applySnapping(currentModel.position.z, snapGridSize);
+      }
+      
+      if (snapMode === 'angle' || snapMode === 'both') {
+        // Apply rotation snapping (convert to degrees, snap, convert back to radians)
+        const snapAngleRad = (snapAngleStep * Math.PI) / 180;
+        currentModel.rotation.x = applySnapping(currentModel.rotation.x, snapAngleRad);
+        currentModel.rotation.y = applySnapping(currentModel.rotation.y, snapAngleRad);
+        currentModel.rotation.z = applySnapping(currentModel.rotation.z, snapAngleRad);
+      }
+    });
+  }
 
   rotateBtn.addEventListener('click', async () => {
     if (!currentFile) {
@@ -719,8 +809,27 @@ function initializeTransform() {
       return;
     }
 
-    const axis = document.getElementById('rotate-axis').value;
-    const angle = document.getElementById('rotate-angle').value;
+    const axisEl = document.getElementById('rotate-axis');
+    const angleEl = document.getElementById('rotate-angle');
+    
+    if (!axisEl || !angleEl) {
+      showStatus('transform-status', 'Transform controls not available', 'error');
+      return;
+    }
+    
+    const axis = axisEl.value;
+    let angle = parseFloat(angleEl.value);
+    
+    // Validate angle input
+    if (isNaN(angle)) {
+      showStatus('transform-status', 'Please enter a valid angle', 'error');
+      return;
+    }
+    
+    // Apply angle snapping if enabled
+    if (snappingEnabled) {
+      angle = applySnapping(angle, snapAngleStep);
+    }
 
     try {
       showStatus('transform-status', 'Rotating model...', 'info');
@@ -765,9 +874,22 @@ function initializeTransform() {
       return;
     }
 
-    const x = document.getElementById('translate-x').value;
-    const y = document.getElementById('translate-y').value;
-    const z = document.getElementById('translate-z').value;
+    let x = parseFloat(document.getElementById('translate-x').value);
+    let y = parseFloat(document.getElementById('translate-y').value);
+    let z = parseFloat(document.getElementById('translate-z').value);
+    
+    // Validate inputs
+    if (isNaN(x) || isNaN(y) || isNaN(z)) {
+      showStatus('transform-status', 'Please enter valid translation values', 'error');
+      return;
+    }
+    
+    // Apply grid snapping if enabled
+    if (snappingEnabled) {
+      x = applySnapping(x, snapGridSize);
+      y = applySnapping(y, snapGridSize);
+      z = applySnapping(z, snapGridSize);
+    }
 
     try {
       showStatus('transform-status', 'Translating model...', 'info');
@@ -806,6 +928,59 @@ function initializeTransform() {
       translateBtn.disabled = false;
     }
   });
+  
+  // Scale functionality
+  if (scaleBtn) {
+    scaleBtn.addEventListener('click', async () => {
+      if (!currentFile) {
+        showStatus('transform-status', 'Please upload a file first', 'error');
+        return;
+      }
+
+      const scaleFactor = parseFloat(document.getElementById('scale-factor').value);
+
+      // Validate scale factor
+      if (isNaN(scaleFactor) || scaleFactor <= 0) {
+        showStatus('transform-status', 'Please enter a valid positive scale factor', 'error');
+        return;
+      }
+
+      try {
+        showStatus('transform-status', 'Scaling model...', 'info');
+        scaleBtn.disabled = true;
+
+        const fd = new (FormData || window.FormData)();
+        fd.append('file', currentFile);
+        fd.append('operation', 'scale');
+        fd.append('factor', scaleFactor);
+
+        const response = await axios.post(`${API_BASE}/transform`, fd, {
+          headers: fd.getHeaders ? fd.getHeaders() : {},
+          responseType: 'arraybuffer'
+        });
+
+        if (ipcRenderer) {
+          const savePath = await ipcRenderer.invoke(
+            'save-file',
+            `${currentFile.name.split('.')[0]}_scaled.stl`
+          );
+          if (savePath) {
+            fs.writeFileSync(savePath, Buffer.from(response.data));
+            showStatus('transform-status', 'Scaled successfully', 'success');
+            loadModelToViewer(savePath);
+          }
+        } else {
+          downloadBlob(response.data, `${currentFile.name.split('.')[0]}_scaled.stl`);
+          showStatus('transform-status', 'Scaled (Downloaded)', 'success');
+        }
+      } catch (error) {
+        console.error('Scale error:', error);
+        showStatus('transform-status', `Error: ${error.message}`, 'error');
+      } finally {
+        scaleBtn.disabled = false;
+      }
+    });
+  }
 }
 
 // Supports functionality
@@ -1521,3 +1696,213 @@ document.getElementById('pro-btn').addEventListener('click', async () => {
 
 // Check Pro status on load
 checkProStatus();
+
+// ==================== Print Notes System ====================
+
+function initializeNotes() {
+  const saveNoteBtn = document.getElementById('save-note-btn');
+  const boundsWarningClose = document.getElementById('bounds-warning-close');
+  
+  // Load notes from localStorage
+  loadPrintNotes();
+  
+  // Auto-populate printer from selected printer profile
+  const printerSelect = document.getElementById('printer-profile');
+  if (printerSelect) {
+    printerSelect.addEventListener('change', () => {
+      const printerInput = document.getElementById('note-printer');
+      if (printerInput) {
+        const selectedText = printerSelect.options[printerSelect.selectedIndex].text;
+        printerInput.value = selectedText.split(' (')[0]; // Remove dimensions
+      }
+    });
+  }
+  
+  if (saveNoteBtn) {
+    saveNoteBtn.addEventListener('click', () => {
+      const note = {
+        id: Date.now(),
+        date: new Date().toISOString(),
+        modelName: document.getElementById('note-model-name').value,
+        modelType: document.getElementById('note-model-type').value,
+        modelScale: document.getElementById('note-model-scale').value,
+        printer: document.getElementById('note-printer').value,
+        resin: document.getElementById('note-resin').value,
+        printTime: document.getElementById('note-print-time').value,
+        temperature: document.getElementById('note-temp-value').value,
+        temperatureUnit: document.getElementById('note-temp-unit').value,
+        additionalNotes: document.getElementById('note-additional').value
+      };
+      
+      // Validate required fields
+      if (!note.modelName) {
+        showStatus('note-status', 'Please enter a model name', 'error');
+        return;
+      }
+      
+      // Save to localStorage
+      const notes = JSON.parse(localStorage.getItem('sprucecrafter_notes') || '[]');
+      notes.unshift(note); // Add to beginning
+      localStorage.setItem('sprucecrafter_notes', JSON.stringify(notes));
+      
+      // Clear form
+      document.getElementById('note-model-name').value = '';
+      document.getElementById('note-model-type').value = '';
+      document.getElementById('note-model-scale').value = '';
+      document.getElementById('note-resin').value = '';
+      document.getElementById('note-print-time').value = '';
+      document.getElementById('note-temp-value').value = '';
+      document.getElementById('note-additional').value = '';
+      
+      // Reload display
+      loadPrintNotes();
+      
+      showStatus('note-status', 'Print note saved successfully!', 'success');
+    });
+  }
+}
+
+function loadPrintNotes() {
+  const notesHistory = document.getElementById('notes-history');
+  if (!notesHistory) return;
+  
+  const notes = JSON.parse(localStorage.getItem('sprucecrafter_notes') || '[]');
+  
+  if (notes.length === 0) {
+    notesHistory.innerHTML = '<p style="color: var(--text-muted); font-size: 12px; text-align: center; padding: 20px;">No print notes yet. Add your first note above!</p>';
+    return;
+  }
+  
+  notesHistory.innerHTML = notes.map(note => `
+    <div class="note-item">
+      <div class="note-item-header">
+        <div class="note-item-title">${escapeHtml(note.modelName || 'Untitled')}</div>
+        <div class="note-item-date">${new Date(note.date).toLocaleDateString()}</div>
+      </div>
+      <div class="note-item-details">
+        ${note.modelType ? `<div class="note-item-detail"><span class="note-item-detail-label">Type</span><span class="note-item-detail-value">${escapeHtml(note.modelType)}</span></div>` : ''}
+        ${note.modelScale ? `<div class="note-item-detail"><span class="note-item-detail-label">Scale</span><span class="note-item-detail-value">${escapeHtml(note.modelScale)}</span></div>` : ''}
+        ${note.printer ? `<div class="note-item-detail"><span class="note-item-detail-label">Printer</span><span class="note-item-detail-value">${escapeHtml(note.printer)}</span></div>` : ''}
+        ${note.resin ? `<div class="note-item-detail"><span class="note-item-detail-label">Resin</span><span class="note-item-detail-value">${escapeHtml(note.resin)}</span></div>` : ''}
+        ${note.printTime ? `<div class="note-item-detail"><span class="note-item-detail-label">Print Time</span><span class="note-item-detail-value">${escapeHtml(note.printTime)}</span></div>` : ''}
+        ${note.temperature ? `<div class="note-item-detail"><span class="note-item-detail-label">Temperature</span><span class="note-item-detail-value">${escapeHtml(note.temperature)}°${escapeHtml(note.temperatureUnit)}</span></div>` : ''}
+      </div>
+      ${note.additionalNotes ? `<p style="font-size: 11px; color: var(--text-secondary); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-color);">${escapeHtml(note.additionalNotes)}</p>` : ''}
+      <div class="note-item-actions">
+        <button data-note-id="${escapeHtml(String(note.id))}">Delete</button>
+      </div>
+    </div>
+  `).join('');
+  
+  // Add event listeners to delete buttons
+  notesHistory.querySelectorAll('.note-item-actions button').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const noteId = parseInt(e.target.getAttribute('data-note-id'));
+      deleteNote(noteId);
+    });
+  });
+}
+
+// Helper function to escape HTML and prevent XSS
+function escapeHtml(text) {
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function deleteNote(noteId) {
+  const notes = JSON.parse(localStorage.getItem('sprucecrafter_notes') || '[]');
+  const filtered = notes.filter(n => n.id !== noteId);
+  localStorage.setItem('sprucecrafter_notes', JSON.stringify(filtered));
+  loadPrintNotes();
+  updateStatus('Note deleted', 'info');
+}
+
+// Make deleteNote available globally
+window.deleteNote = deleteNote;
+
+// ==================== Bounds Checking ====================
+
+let currentBuildPlate = { x: 192, y: 120, z: 245 }; // Default Saturn size
+
+function initializeBoundsWarning() {
+  const boundsWarningClose = document.getElementById('bounds-warning-close');
+  if (boundsWarningClose) {
+    boundsWarningClose.addEventListener('click', () => {
+      document.getElementById('bounds-warning-dialog').classList.add('hidden');
+    });
+  }
+}
+
+function checkModelBounds(model) {
+  if (!model || !currentBuildPlate) return;
+  
+  const box = new THREE.Box3().setFromObject(model);
+  const size = new THREE.Vector3();
+  box.getSize(size);
+  
+  // Build plate: x = width, y = depth, z = height
+  // Model: x = width, y = height (vertical), z = depth
+  const exceedsX = size.x > currentBuildPlate.x; // Width
+  const exceedsY = size.y > currentBuildPlate.z; // Height (model Y vs plate Z)
+  const exceedsZ = size.z > currentBuildPlate.y; // Depth (model Z vs plate Y)
+  
+  if (exceedsX || exceedsY || exceedsZ) {
+    showBoundsWarning(size, currentBuildPlate);
+  }
+}
+
+function showBoundsWarning(modelSize, plateSize) {
+  const dialog = document.getElementById('bounds-warning-dialog');
+  const details = document.getElementById('bounds-details');
+  
+  if (!dialog || !details) return;
+  
+  details.innerHTML = `
+    <strong>Model Dimensions:</strong><br>
+    Width (X): ${modelSize.x.toFixed(2)} mm ${modelSize.x > plateSize.x ? '⚠️ EXCEEDS' : '✓'}<br>
+    Height (Y): ${modelSize.y.toFixed(2)} mm ${modelSize.y > plateSize.z ? '⚠️ EXCEEDS' : '✓'}<br>
+    Depth (Z): ${modelSize.z.toFixed(2)} mm ${modelSize.z > plateSize.y ? '⚠️ EXCEEDS' : '✓'}<br>
+    <br>
+    <strong>Build Plate Limits:</strong><br>
+    Width × Depth × Height: ${plateSize.x} × ${plateSize.y} × ${plateSize.z} mm
+  `;
+  
+  dialog.classList.remove('hidden');
+}
+
+// Update build plate reference when printer changes
+function updateBuildPlateReference(x, y, z) {
+  currentBuildPlate = { x, y, z };
+}
+
+// ==================== Enhanced Camera Controls ====================
+
+function lockCameraToObject(object) {
+  if (!controls || !camera) return;
+  
+  if (object) {
+    const box = new THREE.Box3().setFromObject(object);
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+    
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const fov = camera.fov * (Math.PI / 180);
+    const cameraDistance = Math.abs(maxDim / Math.tan(fov / 2)) * 1.5;
+    
+    controls.target.copy(center);
+    
+    const angle = Math.PI / 4;
+    const cameraX = center.x + cameraDistance * Math.cos(angle);
+    const cameraY = center.y + cameraDistance * 0.7;
+    const cameraZ = center.z + cameraDistance * Math.sin(angle);
+    
+    animateCameraToPosition(new THREE.Vector3(cameraX, cameraY, cameraZ), center);
+  } else if (printerPlate) {
+    // Lock to build plate when no object selected
+    lockCameraToBuildPlate(currentBuildPlate.x, currentBuildPlate.y, currentBuildPlate.z);
+  }
+}
