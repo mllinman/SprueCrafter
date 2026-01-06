@@ -818,7 +818,15 @@ def pro_status():
 if __name__ == "__main__":
     # Get configuration from environment variables
     host = os.getenv("HOST", "127.0.0.1")
-    port = int(os.getenv("PORT", 5000))
+    
+    # Parse PORT with error handling for invalid values (e.g., literal "$PORT")
+    port_str = os.getenv("PORT", "5000")
+    try:
+        port = int(port_str)
+    except (ValueError, TypeError):
+        logger.warning(f"Invalid PORT value '{port_str}', using default port 5000")
+        port = 5000
+    
     debug = os.getenv("FLASK_DEBUG", "True").lower() == "true"
 
     logger.info("Starting SprueCrafter Backend API...")

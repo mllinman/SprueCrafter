@@ -209,7 +209,8 @@ None - app works with defaults
 ### Recommended
 - FLASK_DEBUG=False
 - HOST=0.0.0.0
-- PORT=$PORT (Railway sets this)
+
+**Note:** Railway automatically provides the `PORT` environment variable - do NOT set it manually.
 
 ### Optional (for Pro features)
 - STRIPE_SECRET_KEY
