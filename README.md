@@ -23,6 +23,15 @@ SprueCrafter is a powerful desktop application that converts 3D object data into
 - **Photo-to-3D Conversion**: Create 3D models from photographs using photogrammetry
 - **Resin Printer Compatible**: Works with all mainstream resin printers
 
+### ✨ Advanced Features (NEW in 2026)
+
+- **Island Detection**: Automatically detect floating layers that may cause print failures
+- **One-Click Mesh Repair**: Fix common mesh issues with a single click
+- **Mesh Quality Analysis**: Comprehensive analysis of model printability and quality
+- **Advanced Hollowing**: Hollow models to save material with intelligent drainage hole placement
+- **Material Savings Calculator**: Real-time cost reduction estimates for hollowed models
+- **Batch Processing**: Process multiple models simultaneously for analysis, repair, or conversion
+
 ### 🎨 Modern UI
 
 - **Dark Theme**: Beautiful, modern dark interface with bright accent colors
@@ -224,6 +233,43 @@ If you're a Pro subscriber, you can set your API key for enhanced features:
   - Inspect details
   - Verify sprue layout
 
+### 10. Island Detection (NEW)
+
+- Navigate to **Island Detection** tab
+- Upload your 3D model
+- Set layer height and threshold
+- Click **Detect Islands**
+- System analyzes model and highlights problematic layers
+- Review recommendations to fix issues
+
+### 11. Mesh Repair (NEW)
+
+- Select **Mesh Repair** tab
+- Upload model with issues
+- Click **Analyze Mesh** to see quality report
+- Click **Repair Mesh** for one-click automatic fixes
+- Download repaired model
+
+### 12. Hollowing (NEW)
+
+- Go to **Hollowing** tab
+- Upload your model
+- Set wall thickness (default: 2mm)
+- Choose number of drainage holes (default: 2)
+- Click **Estimate Savings** to see material cost reduction
+- Click **Hollow Model** to process and download
+- Review savings report (volume, weight, cost)
+
+### 13. Batch Processing (NEW)
+
+- Navigate to **Batch Processing** tab
+- Upload multiple models at once
+- Choose operation:
+  - **Analyze**: Check quality of all models
+  - **Repair**: Fix all models automatically
+  - **Convert**: Batch convert to different format
+- Review batch results and download processed files
+
 
 ## Technical Details
 
@@ -372,6 +418,59 @@ Returns: Pro subscription status
 ```
 POST /api/pro/webhook
 Stripe webhook endpoint for subscription events
+```
+
+#### Island Detection (NEW)
+```
+POST /api/island-detection
+Form Data:
+  - file: 3D model file
+  - layer_height: layer height in mm (default: 0.05)
+  - threshold: minimum island area threshold in mm² (default: 0.1)
+Returns: JSON with island detection results, risk level, and recommendations
+```
+
+#### Mesh Repair (NEW)
+```
+POST /api/mesh-repair
+Form Data:
+  - file: 3D model file
+Returns: Repaired STL file
+```
+
+#### Mesh Analysis (NEW)
+```
+POST /api/mesh-analyze
+Form Data:
+  - file: 3D model file
+Returns: JSON with mesh quality analysis, printability score, and issues
+```
+
+#### Hollowing (NEW)
+```
+POST /api/hollow
+Form Data:
+  - file: 3D model file
+  - wall_thickness: wall thickness in mm (default: 2.0)
+  - drainage_holes: number of drainage holes (default: 2)
+  - estimate_only: true/false (default: false)
+Returns: Hollowed STL file or JSON with savings estimate
+```
+
+#### Batch Analysis (NEW)
+```
+POST /api/batch/analyze
+Form Data:
+  - files: multiple 3D model files
+Returns: JSON with analysis results for all models
+```
+
+#### Batch Repair (NEW)
+```
+POST /api/batch/repair
+Form Data:
+  - files: multiple 3D model files
+Returns: JSON with repair results and export information
 ```
 
 ## Building for Production

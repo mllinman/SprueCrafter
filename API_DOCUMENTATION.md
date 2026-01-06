@@ -708,6 +708,252 @@ Stripe-Signature: webhook-signature
 
 ---
 
+## Advanced Features (New in 2026)
+
+### Island Detection
+
+Detect floating layers (islands) in 3D models that may cause print failures.
+
+**Endpoint:** `POST /api/island-detection`
+
+**Form Data:**
+- `file` (required): 3D model file
+- `layer_height` (optional): Layer height in mm (default: 0.05)
+- `threshold` (optional): Minimum island area threshold in mm² (default: 0.1)
+
+**Response:**
+```json
+{
+  "success": true,
+  "total_islands": 3,
+  "problematic_layers": 12,
+  "total_layers": 200,
+  "layer_height": 0.05,
+  "risk_level": "medium",
+  "islands": [
+    {
+      "layer_z": 5.25,
+      "area": 0.08,
+      "region_id": 1,
+      "vertices": 15
+    }
+  ],
+  "recommendations": [
+    "Few islands detected. Consider adding supports to affected areas.",
+    "Review island locations and adjust model orientation if possible."
+  ]
+}
+```
+
+**Example:**
+```bash
+curl -X POST http://localhost:5000/api/island-detection \
+  -F "file=@model.stl" \
+  -F "layer_height=0.05" \
+  -F "threshold=0.1"
+```
+
+---
+
+### Mesh Repair
+
+One-click mesh repair for 3D models.
+
+**Endpoint:** `POST /api/mesh-repair`
+
+**Form Data:**
+- `file` (required): 3D model file
+
+**Response:** Returns the repaired STL file as download
+
+**Example:**
+```bash
+curl -X POST http://localhost:5000/api/mesh-repair \
+  -F "file=@model.stl" \
+  -o repaired_model.stl
+```
+
+---
+
+### Mesh Analysis
+
+Analyze mesh quality and identify issues.
+
+**Endpoint:** `POST /api/mesh-analyze`
+
+**Form Data:**
+- `file` (required): 3D model file
+
+**Response:**
+```json
+{
+  "success": true,
+  "is_watertight": true,
+  "is_manifold": true,
+  "is_printable": true,
+  "vertex_count": 15482,
+  "face_count": 30960,
+  "edge_count": 46440,
+  "degenerate_faces": 0,
+  "duplicate_vertices": 5,
+  "quality_score": 95.5,
+  "volume": 12543.67,
+  "surface_area": 5678.23,
+  "issues": [],
+  "warnings": ["Found 5 duplicate vertices"]
+}
+```
+
+**Example:**
+```bash
+curl -X POST http://localhost:5000/api/mesh-analyze \
+  -F "file=@model.stl"
+```
+
+---
+
+### Hollowing
+
+Hollow out 3D models to save material and reduce print time.
+
+**Endpoint:** `POST /api/hollow`
+
+**Form Data:**
+- `file` (required): 3D model file
+- `wall_thickness` (optional): Wall thickness in mm (default: 2.0)
+- `drainage_holes` (optional): Number of drainage holes (default: 2)
+- `estimate_only` (optional): Only estimate savings without processing (default: false)
+
+**Response (when estimate_only=false):** Returns the hollowed STL file as download
+
+**Response (when estimate_only=true):**
+```json
+{
+  "success": true,
+  "wall_thickness": 2.0,
+  "original_volume_mm3": 25000.0,
+  "estimated_hollow_volume_mm3": 8500.0,
+  "estimated_volume_saved_mm3": 16500.0,
+  "estimated_weight_saved_g": 19.8,
+  "estimated_savings_percent": 66.0,
+  "estimated_cost_savings": {
+    "volume_saved_ml": 16.5,
+    "cost_saved_usd": 0.83,
+    "resin_cost_per_ml": 0.05
+  }
+}
+```
+
+**Example (Hollow and download):**
+```bash
+curl -X POST http://localhost:5000/api/hollow \
+  -F "file=@model.stl" \
+  -F "wall_thickness=2.5" \
+  -F "drainage_holes=3" \
+  -o hollowed_model.stl
+```
+
+**Example (Estimate only):**
+```bash
+curl -X POST http://localhost:5000/api/hollow \
+  -F "file=@model.stl" \
+  -F "wall_thickness=2.0" \
+  -F "estimate_only=true"
+```
+
+---
+
+### Batch Analysis
+
+Analyze multiple 3D models in batch.
+
+**Endpoint:** `POST /api/batch/analyze`
+
+**Form Data:**
+- `files` (required): Multiple 3D model files
+
+**Response:**
+```json
+{
+  "success": true,
+  "total_models": 5,
+  "successful": 5,
+  "failed": 0,
+  "printable_models": 4,
+  "results": [
+    {
+      "filename": "model1.stl",
+      "success": true,
+      "is_watertight": true,
+      "is_printable": true,
+      "quality_score": 95.5,
+      "total_islands": 0,
+      "risk_level": "low"
+    },
+    {
+      "filename": "model2.stl",
+      "success": true,
+      "is_watertight": false,
+      "is_printable": false,
+      "quality_score": 60.0,
+      "total_islands": 8,
+      "risk_level": "high"
+    }
+  ]
+}
+```
+
+**Example:**
+```bash
+curl -X POST http://localhost:5000/api/batch/analyze \
+  -F "files=@model1.stl" \
+  -F "files=@model2.stl" \
+  -F "files=@model3.stl"
+```
+
+---
+
+### Batch Repair
+
+Repair multiple 3D models in batch.
+
+**Endpoint:** `POST /api/batch/repair`
+
+**Form Data:**
+- `files` (required): Multiple 3D model files
+
+**Response:**
+```json
+{
+  "success": true,
+  "total_models": 3,
+  "successful": 3,
+  "failed": 0,
+  "results": [
+    {
+      "filename": "model1.stl",
+      "success": true,
+      "operations": ["Removed duplicate vertices", "Fixed face normals"],
+      "before_quality": 75.0,
+      "after_quality": 98.0
+    }
+  ],
+  "export": {
+    "success": true,
+    "output_directory": "/path/to/batch_repaired"
+  }
+}
+```
+
+**Example:**
+```bash
+curl -X POST http://localhost:5000/api/batch/repair \
+  -F "files=@model1.stl" \
+  -F "files=@model2.stl"
+```
+
+---
+
 ## Pro Features
 
 When authenticated with a Pro API key, users get access to:

@@ -32,6 +32,10 @@ from core.sprue_generator import SprueGenerator
 from core.photo_to_model import PhotoToModel
 from core.transformer import Transformer
 from core.support_generator import SupportGenerator
+from core.island_detector import IslandDetector
+from core.mesh_repair import MeshRepair
+from core.hollowing import Hollowing
+from core.batch_processor import BatchProcessor
 
 app = Flask(__name__, static_folder="../web", static_url_path="")
 
@@ -161,6 +165,13 @@ def index():
                     "connector_types": "/api/connector-types",
                     "pro_subscribe": "/api/pro/subscribe",
                     "pro_status": "/api/pro/status",
+                    "island_detection": "/api/island-detection",
+                    "mesh_repair": "/api/mesh-repair",
+                    "mesh_analyze": "/api/mesh-analyze",
+                    "hollow": "/api/hollow",
+                    "batch_load": "/api/batch/load",
+                    "batch_analyze": "/api/batch/analyze",
+                    "batch_repair": "/api/batch/repair",
                 },
             }
         )
@@ -816,6 +827,305 @@ def pro_status():
         )
     else:
         return jsonify({"is_pro": False, "message": "Invalid or expired API key"})
+
+
+# ============================================================================
+# FUTURE IMPROVEMENTS - New Advanced Features
+# ============================================================================
+
+@app.route("/api/island-detection", methods=["POST"])
+@handle_errors
+def detect_islands():
+    """
+    Detect floating layers (islands) in 3D model
+    """
+    if "file" not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+
+    file = request.files["file"]
+
+    if file.filename == "":
+        return jsonify({"error": "No file selected"}), 400
+
+    if not allowed_file(file.filename, "3d"):
+        return jsonify({"error": "File type not allowed. Must be a 3D model format."}), 400
+
+    try:
+        layer_height = float(request.form.get("layer_height", 0.05))
+        if layer_height <= 0 or layer_height > 10:
+            return jsonify({"error": "Layer height must be between 0 and 10 mm"}), 400
+    except ValueError:
+        return jsonify({"error": "Invalid layer height value"}), 400
+
+    try:
+        threshold = float(request.form.get("threshold", 0.1))
+        if threshold < 0 or threshold > 1000:
+            return jsonify({"error": "Threshold must be between 0 and 1000 mm²"}), 400
+    except ValueError:
+        return jsonify({"error": "Invalid threshold value"}), 400
+
+    logger.info(f"Detecting islands in {file.filename}")
+
+    # Sanitize filename to prevent directory traversal
+    safe_filename = os.path.basename(file.filename)
+    input_path = os.path.join(app.config["UPLOAD_FOLDER"], safe_filename)
+    file.save(input_path)
+
+    # Load mesh
+    mesh = trimesh.load(input_path)
+
+    # Detect islands
+    detector = IslandDetector(mesh)
+    result = detector.detect_islands(layer_height=layer_height, threshold=threshold)
+
+    return jsonify(result)
+
+
+@app.route("/api/mesh-repair", methods=["POST"])
+@handle_errors
+def repair_mesh():
+    """
+    One-click mesh repair
+    """
+    if "file" not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+
+    file = request.files["file"]
+
+    if file.filename == "":
+        return jsonify({"error": "No file selected"}), 400
+
+    if not allowed_file(file.filename, "3d"):
+        return jsonify({"error": "File type not allowed. Must be a 3D model format."}), 400
+
+    logger.info(f"Repairing mesh {file.filename}")
+
+    # Sanitize filename to prevent directory traversal
+    safe_filename = os.path.basename(file.filename)
+    input_path = os.path.join(app.config["UPLOAD_FOLDER"], safe_filename)
+    file.save(input_path)
+
+    # Load mesh
+    mesh = trimesh.load(input_path)
+
+    # Repair mesh
+    repairer = MeshRepair(mesh)
+    result = repairer.one_click_repair()
+
+    if result["success"]:
+        # Save repaired mesh
+        output_filename = f"repaired_{file.filename}"
+        output_path = os.path.join(app.config["UPLOAD_FOLDER"], output_filename)
+        repaired_mesh = repairer.get_repaired_mesh()
+        repaired_mesh.export(output_path)
+
+        return send_file(output_path, as_attachment=True)
+    else:
+        return jsonify(result), 500
+
+
+@app.route("/api/mesh-analyze", methods=["POST"])
+@handle_errors
+def analyze_mesh():
+    """
+    Analyze mesh quality
+    """
+    if "file" not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+
+    file = request.files["file"]
+
+    if file.filename == "":
+        return jsonify({"error": "No file selected"}), 400
+
+    if not allowed_file(file.filename, "3d"):
+        return jsonify({"error": "File type not allowed. Must be a 3D model format."}), 400
+
+    logger.info(f"Analyzing mesh {file.filename}")
+
+    # Sanitize filename to prevent directory traversal
+    safe_filename = os.path.basename(file.filename)
+    input_path = os.path.join(app.config["UPLOAD_FOLDER"], safe_filename)
+    file.save(input_path)
+
+    # Load mesh
+    mesh = trimesh.load(input_path)
+
+    # Analyze mesh
+    repairer = MeshRepair(mesh)
+    result = repairer.analyze_mesh()
+
+    return jsonify(result)
+
+
+@app.route("/api/hollow", methods=["POST"])
+@handle_errors
+def hollow_model():
+    """
+    Hollow out 3D model
+    """
+    if "file" not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+
+    file = request.files["file"]
+
+    if file.filename == "":
+        return jsonify({"error": "No file selected"}), 400
+
+    if not allowed_file(file.filename, "3d"):
+        return jsonify({"error": "File type not allowed. Must be a 3D model format."}), 400
+
+    try:
+        wall_thickness = float(request.form.get("wall_thickness", 2.0))
+        if wall_thickness <= 0 or wall_thickness > 50:
+            return jsonify({"error": "Wall thickness must be between 0 and 50 mm"}), 400
+    except ValueError:
+        return jsonify({"error": "Invalid wall thickness value"}), 400
+
+    try:
+        drainage_holes = int(request.form.get("drainage_holes", 2))
+        if drainage_holes < 0 or drainage_holes > 20:
+            return jsonify({"error": "Drainage holes must be between 0 and 20"}), 400
+    except ValueError:
+        return jsonify({"error": "Invalid drainage holes value"}), 400
+
+    estimate_only = request.form.get("estimate_only", "false").lower() == "true"
+
+    logger.info(f"Hollowing model {file.filename}")
+
+    # Sanitize filename to prevent directory traversal
+    safe_filename = os.path.basename(file.filename)
+    input_path = os.path.join(app.config["UPLOAD_FOLDER"], safe_filename)
+    file.save(input_path)
+
+    # Load mesh
+    mesh = trimesh.load(input_path)
+
+    # Hollow mesh
+    hollower = Hollowing(mesh)
+
+    if estimate_only:
+        result = hollower.estimate_savings(wall_thickness=wall_thickness)
+        return jsonify(result)
+    else:
+        result = hollower.hollow_model(
+            wall_thickness=wall_thickness,
+            drainage_hole_count=drainage_holes,
+        )
+
+        if result["success"]:
+            # Save hollowed mesh
+            output_filename = f"hollowed_{file.filename}"
+            output_path = os.path.join(app.config["UPLOAD_FOLDER"], output_filename)
+            hollowed_mesh = hollower.get_hollowed_mesh()
+            if hollowed_mesh is not None:
+                hollowed_mesh.export(output_path)
+                return send_file(output_path, as_attachment=True)
+
+        return jsonify(result)
+
+
+@app.route("/api/batch/load", methods=["POST"])
+@handle_errors
+def batch_load():
+    """
+    Load multiple models for batch processing
+    """
+    if "files" not in request.files:
+        return jsonify({"error": "No files provided"}), 400
+
+    files = request.files.getlist("files")
+
+    if len(files) == 0:
+        return jsonify({"error": "No files selected"}), 400
+
+    logger.info(f"Loading {len(files)} models for batch processing")
+
+    # Save uploaded files
+    file_paths = []
+    for file in files:
+        if file.filename and allowed_file(file.filename, "3d"):
+            input_path = os.path.join(app.config["UPLOAD_FOLDER"], file.filename)
+            file.save(input_path)
+            file_paths.append(input_path)
+
+    # Load models
+    processor = BatchProcessor()
+    result = processor.load_models(file_paths)
+
+    # Store processor in session (simplified - in production use database or cache)
+    # For now, just return result
+    return jsonify(result)
+
+
+@app.route("/api/batch/analyze", methods=["POST"])
+@handle_errors
+def batch_analyze():
+    """
+    Analyze multiple models
+    """
+    if "files" not in request.files:
+        return jsonify({"error": "No files provided"}), 400
+
+    files = request.files.getlist("files")
+
+    if len(files) == 0:
+        return jsonify({"error": "No files selected"}), 400
+
+    logger.info(f"Analyzing {len(files)} models")
+
+    # Save and load files
+    file_paths = []
+    for file in files:
+        if file.filename and allowed_file(file.filename, "3d"):
+            input_path = os.path.join(app.config["UPLOAD_FOLDER"], file.filename)
+            file.save(input_path)
+            file_paths.append(input_path)
+
+    # Process batch
+    processor = BatchProcessor()
+    processor.load_models(file_paths)
+    result = processor.batch_analyze()
+
+    return jsonify(result)
+
+
+@app.route("/api/batch/repair", methods=["POST"])
+@handle_errors
+def batch_repair():
+    """
+    Repair multiple models
+    """
+    if "files" not in request.files:
+        return jsonify({"error": "No files provided"}), 400
+
+    files = request.files.getlist("files")
+
+    if len(files) == 0:
+        return jsonify({"error": "No files selected"}), 400
+
+    logger.info(f"Repairing {len(files)} models")
+
+    # Save and load files
+    file_paths = []
+    for file in files:
+        if file.filename and allowed_file(file.filename, "3d"):
+            input_path = os.path.join(app.config["UPLOAD_FOLDER"], file.filename)
+            file.save(input_path)
+            file_paths.append(input_path)
+
+    # Process batch
+    processor = BatchProcessor()
+    processor.load_models(file_paths)
+    result = processor.batch_repair()
+
+    # Export repaired models
+    output_dir = os.path.join(app.config["UPLOAD_FOLDER"], "batch_repaired")
+    export_result = processor.batch_export(output_dir)
+
+    result["export"] = export_result
+
+    return jsonify(result)
 
 
 if __name__ == "__main__":
