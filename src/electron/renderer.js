@@ -1228,3 +1228,120 @@ function downloadBlob(data, fileName) {
     window.URL.revokeObjectURL(url);
   }, 0);
 }
+
+// ============================================
+// Pro Subscription Features
+// ============================================
+
+let proApiKey = localStorage.getItem('sprucecrafter_pro_key') || null;
+let isProUser = false;
+
+// Check Pro status on startup
+async function checkProStatus() {
+  if (!proApiKey) {
+    updateProUI(false);
+    return;
+  }
+
+  try {
+    const response = await axios.get(`${API_BASE}/pro/status`, {
+      headers: { 'X-API-Key': proApiKey }
+    });
+    
+    if (response.data.is_pro) {
+      isProUser = true;
+      updateProUI(true, response.data);
+    } else {
+      // Invalid key
+      proApiKey = null;
+      localStorage.removeItem('sprucecrafter_pro_key');
+      updateProUI(false);
+    }
+  } catch (error) {
+    console.error('Pro status check failed:', error);
+    updateProUI(false);
+  }
+}
+
+function updateProUI(isPro, userData = null) {
+  const proBtn = document.getElementById('pro-btn');
+  const proStatus = document.getElementById('pro-status');
+  
+  if (isPro && userData) {
+    proBtn.classList.add('pro-active');
+    proBtn.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+      <span>Pro Active</span>
+    `;
+    proStatus.classList.add('active');
+    proStatus.querySelector('span').textContent = `Pro: ${userData.name || userData.email}`;
+  } else {
+    proBtn.classList.remove('pro-active');
+    proBtn.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+      </svg>
+      <span>Go Pro</span>
+    `;
+    proStatus.classList.remove('active');
+  }
+}
+
+// Pro subscription button handler
+document.getElementById('pro-btn').addEventListener('click', async () => {
+  if (isProUser) {
+    // Show Pro info
+    showNotification('You are a Pro subscriber! Thank you for your support.', 'success');
+    return;
+  }
+
+  // Prompt for email
+  const email = prompt('Enter your email to subscribe to SprueCrafter Pro ($10/month):');
+  if (!email || !email.includes('@')) {
+    if (email !== null) {
+      showNotification('Please enter a valid email address', 'error');
+    }
+    return;
+  }
+
+  const name = prompt('Enter your name (optional):') || email;
+
+  try {
+    showNotification('Creating checkout session...', 'info');
+    
+    const response = await axios.post(`${API_BASE}/pro/subscribe`, {
+      email: email,
+      name: name
+    });
+
+    if (response.data.checkout_url) {
+      // Open checkout URL in browser
+      if (typeof require !== 'undefined') {
+        require('electron').shell.openExternal(response.data.checkout_url);
+      } else {
+        window.open(response.data.checkout_url, '_blank');
+      }
+      
+      showNotification('Checkout opened in your browser. Complete payment and enter your API key here.', 'info');
+      
+      // Prompt for API key after checkout
+      setTimeout(() => {
+        const apiKey = prompt('After completing payment, enter your API key from the confirmation email:');
+        if (apiKey && apiKey.length > 10) {
+          localStorage.setItem('sprucecrafter_pro_key', apiKey);
+          proApiKey = apiKey;
+          checkProStatus();
+        }
+      }, 3000);
+    }
+  } catch (error) {
+    console.error('Pro subscription error:', error);
+    showNotification('Failed to create checkout session. Please try again.', 'error');
+  }
+});
+
+// Check Pro status on load
+checkProStatus();
+
