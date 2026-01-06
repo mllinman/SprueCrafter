@@ -269,6 +269,66 @@ function createPrinterPlate(width, depth, height) {
   printerPlate.add(boxLines);
   
   scene.add(printerPlate);
+  
+  // Lock camera to build plate center and adjust distance based on size
+  lockCameraToBuildPlate(width, depth, height);
+}
+
+function lockCameraToBuildPlate(width, depth, height) {
+  if (!camera || !controls) return;
+  
+  // Calculate the optimal camera distance based on build volume
+  // Use the largest dimension to ensure the entire build volume is visible
+  const maxDimension = Math.max(width, depth, height);
+  const fov = camera.fov * (Math.PI / 180); // Convert to radians
+  const cameraDistance = maxDimension / Math.tan(fov / 2) * 1.5; // 1.5x for comfortable view
+  
+  // Set camera target to the center of the build plate (at mid-height)
+  const targetPosition = new THREE.Vector3(0, height / 2, 0);
+  controls.target.copy(targetPosition);
+  
+  // Position camera at an optimal viewing angle (45 degrees elevation, 45 degrees azimuth)
+  const angle = Math.PI / 4; // 45 degrees
+  const cameraX = cameraDistance * Math.cos(angle);
+  const cameraY = cameraDistance * 0.7; // Slightly above center
+  const cameraZ = cameraDistance * Math.sin(angle);
+  
+  // Animate camera movement for smooth transition
+  animateCameraToPosition(
+    new THREE.Vector3(cameraX, cameraY, cameraZ),
+    targetPosition
+  );
+}
+
+function animateCameraToPosition(targetPos, targetLookAt, duration = 1000) {
+  if (!camera || !controls) return;
+  
+  const startPos = camera.position.clone();
+  const startLookAt = controls.target.clone();
+  const startTime = Date.now();
+  
+  function animate() {
+    const elapsed = Date.now() - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    
+    // Ease-in-out function for smooth animation
+    const eased = progress < 0.5
+      ? 2 * progress * progress
+      : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+    
+    // Interpolate camera position
+    camera.position.lerpVectors(startPos, targetPos, eased);
+    
+    // Interpolate look-at target
+    controls.target.lerpVectors(startLookAt, targetLookAt, eased);
+    controls.update();
+    
+    if (progress < 1) {
+      requestAnimationFrame(animate);
+    }
+  }
+  
+  animate();
 }
 
 function animate() {
@@ -1018,54 +1078,82 @@ async function fetchPrinterProfiles() {
     return res.data;
   } catch (error) {
     console.warn('Using standard printer profiles - backend unavailable');
-    // Comprehensive market resin printer database
+    // Comprehensive industry resin printer database (fallback)
     return {
-      // Elegoo Printers
-      'elegoo_mars_3': { name: 'Elegoo Mars 3', build_volume: { x: 143, y: 89, z: 175 } },
-      'elegoo_mars_3_pro': { name: 'Elegoo Mars 3 Pro', build_volume: { x: 143, y: 89, z: 175 } },
-      'elegoo_mars_4_ultra': { name: 'Elegoo Mars 4 Ultra', build_volume: { x: 153, y: 77, z: 165 } },
-      'elegoo_saturn_2': { name: 'Elegoo Saturn 2', build_volume: { x: 219, y: 123, z: 250 } },
-      'elegoo_saturn_3': { name: 'Elegoo Saturn 3', build_volume: { x: 218, y: 122, z: 250 } },
-      'elegoo_saturn_3_ultra': { name: 'Elegoo Saturn 3 Ultra', build_volume: { x: 218, y: 122, z: 250 } },
-      'elegoo_jupiter': { name: 'Elegoo Jupiter', build_volume: { x: 277, y: 156, z: 300 } },
+      // Elegoo Mars Series
+      'elegoo_mars_3': { name: 'Elegoo Mars 3', build_volume: { x: 143.43, y: 89.6, z: 175 } },
+      'elegoo_mars_3_pro': { name: 'Elegoo Mars 3 Pro', build_volume: { x: 143.43, y: 89.6, z: 175 } },
+      'elegoo_mars_4_ultra': { name: 'Elegoo Mars 4 Ultra', build_volume: { x: 153.36, y: 77.76, z: 165 } },
+      'elegoo_mars_4_max': { name: 'Elegoo Mars 4 Max', build_volume: { x: 196.608, y: 122.88, z: 150 } },
       
-      // Anycubic Printers
-      'anycubic_photon_m3': { name: 'Anycubic Photon M3', build_volume: { x: 163, y: 102, z: 180 } },
-      'anycubic_photon_m3_plus': { name: 'Anycubic Photon M3 Plus', build_volume: { x: 245, y: 197, z: 122 } },
-      'anycubic_photon_mono_x': { name: 'Anycubic Photon Mono X', build_volume: { x: 192, y: 120, z: 245 } },
-      'anycubic_photon_mono_x_6k': { name: 'Anycubic Photon Mono X 6K', build_volume: { x: 197, y: 122, z: 245 } },
+      // Elegoo Saturn Series
+      'elegoo_saturn': { name: 'Elegoo Saturn', build_volume: { x: 192, y: 120, z: 200 } },
+      'elegoo_saturn_2': { name: 'Elegoo Saturn 2', build_volume: { x: 218.88, y: 122.88, z: 250 } },
+      'elegoo_saturn_3': { name: 'Elegoo Saturn 3', build_volume: { x: 218.88, y: 122.88, z: 250 } },
+      'elegoo_saturn_3_ultra': { name: 'Elegoo Saturn 3 Ultra', build_volume: { x: 218.88, y: 122.88, z: 250 } },
+      'elegoo_saturn_4_ultra': { name: 'Elegoo Saturn 4 Ultra', build_volume: { x: 218.88, y: 122.88, z: 220 } },
+      
+      // Elegoo Jupiter Series
+      'elegoo_jupiter': { name: 'Elegoo Jupiter', build_volume: { x: 277.848, y: 156.096, z: 300 } },
+      'elegoo_jupiter_2': { name: 'Elegoo Jupiter 2', build_volume: { x: 277.848, y: 156.096, z: 320 } },
+      
+      // Anycubic Photon Series
       'anycubic_photon_mono_4k': { name: 'Anycubic Photon Mono 4K', build_volume: { x: 132, y: 80, z: 165 } },
-      'anycubic_photon_d2': { name: 'Anycubic Photon D2', build_volume: { x: 131, y: 73, z: 165 } },
+      'anycubic_photon_m3': { name: 'Anycubic Photon M3', build_volume: { x: 163.84, y: 102.4, z: 180 } },
+      'anycubic_photon_m3_plus': { name: 'Anycubic Photon M3 Plus', build_volume: { x: 245.76, y: 197.12, z: 122 } },
+      'anycubic_photon_m3_premium': { name: 'Anycubic Photon M3 Premium', build_volume: { x: 298.08, y: 164.16, z: 300 } },
+      'anycubic_photon_mono_x': { name: 'Anycubic Photon Mono X', build_volume: { x: 192, y: 120, z: 245 } },
+      'anycubic_photon_mono_x_6k': { name: 'Anycubic Photon Mono X 6K', build_volume: { x: 197.12, y: 122.88, z: 245 } },
+      'anycubic_photon_mono_x2': { name: 'Anycubic Photon Mono X2', build_volume: { x: 198, y: 124, z: 245 } },
+      'anycubic_photon_d2': { name: 'Anycubic Photon D2', build_volume: { x: 131.84, y: 73.73, z: 165 } },
       
-      // Phrozen Printers
+      // Phrozen Sonic Series
       'phrozen_sonic_mini_8k': { name: 'Phrozen Sonic Mini 8K', build_volume: { x: 165, y: 72, z: 180 } },
+      'phrozen_sonic_mini_8k_s': { name: 'Phrozen Sonic Mini 8K S', build_volume: { x: 165, y: 71.28, z: 180 } },
+      'phrozen_sonic_mighty_4k': { name: 'Phrozen Sonic Mighty 4K', build_volume: { x: 200, y: 125, z: 220 } },
       'phrozen_sonic_mighty_8k': { name: 'Phrozen Sonic Mighty 8K', build_volume: { x: 218, y: 123, z: 235 } },
       'phrozen_sonic_mega_8k': { name: 'Phrozen Sonic Mega 8K', build_volume: { x: 330, y: 185, z: 400 } },
-      'phrozen_sonic_mighty_4k': { name: 'Phrozen Sonic Mighty 4K', build_volume: { x: 200, y: 125, z: 220 } },
+      'phrozen_sonic_mega_8k_s': { name: 'Phrozen Sonic Mega 8K S', build_volume: { x: 330, y: 185.76, z: 400 } },
       
-      // Creality Printers
+      // Creality Halot Series
       'creality_halot_one': { name: 'Creality Halot One', build_volume: { x: 127, y: 80, z: 160 } },
-      'creality_halot_one_pro': { name: 'Creality Halot One Pro', build_volume: { x: 127, y: 80, z: 160 } },
+      'creality_halot_one_pro': { name: 'Creality Halot One Pro', build_volume: { x: 127.31, y: 80.82, z: 160 } },
+      'creality_halot_lite': { name: 'Creality Halot Lite', build_volume: { x: 127, y: 80, z: 160 } },
+      'creality_halot_sky': { name: 'Creality Halot Sky', build_volume: { x: 192, y: 120, z: 200 } },
       'creality_halot_mage': { name: 'Creality Halot Mage', build_volume: { x: 228, y: 128, z: 230 } },
-      'creality_halot_mage_pro': { name: 'Creality Halot Mage Pro', build_volume: { x: 228, y: 128, z: 230 } },
+      'creality_halot_mage_pro': { name: 'Creality Halot Mage Pro', build_volume: { x: 228.096, y: 128.304, z: 230 } },
+      'creality_halot_max': { name: 'Creality Halot Max', build_volume: { x: 298, y: 164, z: 340 } },
       
-      // Formlabs Printers
+      // Formlabs Form Series
       'formlabs_form_3': { name: 'Formlabs Form 3', build_volume: { x: 145, y: 145, z: 185 } },
       'formlabs_form_3_plus': { name: 'Formlabs Form 3+', build_volume: { x: 145, y: 145, z: 185 } },
       'formlabs_form_3l': { name: 'Formlabs Form 3L', build_volume: { x: 200, y: 335, z: 300 } },
+      'formlabs_form_3b': { name: 'Formlabs Form 3B', build_volume: { x: 145, y: 145, z: 185 } },
+      'formlabs_form_4': { name: 'Formlabs Form 4', build_volume: { x: 200, y: 125, z: 210 } },
       
-      // Prusa Printers
+      // Prusa Research
       'prusa_sl1s': { name: 'Prusa SL1S', build_volume: { x: 127, y: 80, z: 150 } },
       
-      // Longer Printers
+      // Longer Orange Series
       'longer_orange_30': { name: 'Longer Orange 30', build_volume: { x: 120, y: 68, z: 170 } },
       'longer_orange_4k': { name: 'Longer Orange 4K', build_volume: { x: 192, y: 120, z: 245 } },
       
-      // Voxelab Printers
-      'voxelab_proxima_8': { name: 'Voxelab Proxima 8', build_volume: { x: 192, y: 120, z: 245 } },
+      // Qidi Tech
+      'qidi_shadow_6_pro': { name: 'Qidi Shadow 6 Pro', build_volume: { x: 131.56, y: 73.6, z: 160 } },
       
-      // Peopoly Printers
-      'peopoly_phenom': { name: 'Peopoly Phenom', build_volume: { x: 276, y: 155, z: 400 } }
+      // Peopoly
+      'peopoly_phenom': { name: 'Peopoly Phenom', build_volume: { x: 276, y: 155, z: 400 } },
+      'peopoly_phenom_l': { name: 'Peopoly Phenom L', build_volume: { x: 345, y: 194, z: 400 } },
+      'peopoly_phenom_noir': { name: 'Peopoly Phenom Noir', build_volume: { x: 276, y: 155, z: 400 } },
+      
+      // Voxelab
+      'voxelab_proxima_8_1': { name: 'Voxelab Proxima 8.1', build_volume: { x: 192, y: 120, z: 245 } },
+      
+      // Uniformation
+      'uniformation_gk_two': { name: 'Uniformation GKtwo', build_volume: { x: 192, y: 120, z: 200 } },
+      
+      // Custom option
+      'custom': { name: 'Custom Printer', build_volume: { x: 192, y: 120, z: 245 } }
     };
   }
 }
