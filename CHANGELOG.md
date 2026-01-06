@@ -5,6 +5,64 @@ All notable changes to SprueCrafter will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-01-06
+
+### 🎉 MAJOR REFACTOR: Free Access for All Users
+
+This release represents a fundamental shift in SprueCrafter's architecture and business model.
+
+#### Changed
+- **FREE FOR EVERYONE**: All core features are now completely free with no login required
+- **Simplified Architecture**: Removed all SaaS/web deployment complexity
+- **Desktop-First**: Focused on Electron desktop application as primary platform
+- **Optional Pro**: Pro subscription is now optional enhancement, not a requirement
+
+#### Added
+- **Pro Subscription UI**: In-app Pro subscription button with Stripe checkout
+- **Optional Authentication**: Pro users can authenticate with API key for enhanced features
+- **Simplified Backend**: New lightweight `pro_auth.py` and `pro_stripe.py` modules
+- **Pro Status Badge**: Visual indicator when Pro subscription is active
+- **Pro API Endpoints**: `/api/pro/subscribe`, `/api/pro/status`, `/api/pro/webhook`
+
+#### Removed
+- **Marketing Website**: Removed `website/`, `public/`, and `frontend/` directories
+- **SaaS Backend**: Removed `app_saas.py`, `app_web.py`, and related infrastructure
+- **Database Requirements**: No PostgreSQL or database needed for basic usage
+- **Authentication System**: Removed mandatory JWT authentication and user accounts
+- **Subscription Limits**: No more conversion limits or storage restrictions for free users
+- **Deployment Configs**: Removed Docker, Kubernetes, Vercel, Railway configurations
+- **Complex Dependencies**: Removed Flask-SQLAlchemy, JWT, rate limiting, Redis, etc.
+
+#### Technical Details
+- Reduced Python dependencies from 35+ to ~10 core packages
+- Simplified API to focus on 3D processing endpoints
+- Removed database models, migrations, and ORM complexity
+- Pro authentication uses in-memory storage (easily swappable for production DB)
+- Stripe integration simplified to handle only Pro subscriptions
+- All core 3D processing features remain unchanged and fully functional
+
+#### Migration Guide
+For users of previous versions:
+- **Desktop App Users**: Update and continue using - no changes needed
+- **Web App Users**: Please download and install the desktop application
+- **Pro Subscribers**: Contact support for migration of existing subscriptions
+- **API Users**: Core API endpoints unchanged, authentication now optional
+
+#### Documentation Updates
+- Completely rewritten README.md
+- Updated API_DOCUMENTATION.md with Pro endpoints
+- Simplified .env.example configuration
+- Removed SaaS-specific documentation
+
+### Breaking Changes
+⚠️ **This is a breaking change for web/SaaS deployments**
+- Web frontend completely removed
+- Database-backed user accounts removed
+- Different subscription model (optional vs required)
+- Deployment configurations removed
+
+---
+
 ## [Unreleased]
 
 ### Added

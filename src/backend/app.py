@@ -526,8 +526,91 @@ def get_printer_profiles():
     return jsonify(profiles)
 
 
+# Pro subscription endpoints
+@app.route('/api/pro/subscribe', methods=['POST'])
+@handle_errors
+def subscribe_pro():
+    """
+    Create a Stripe checkout session for Pro subscription
+    """
+    data = request.get_json()
+    
+    if not data or 'email' not in data:
+        return jsonify({'error': 'Email is required'}), 400
+    
+    email = data.get('email')
+    name = data.get('name')
+    
+    try:
+        from pro_stripe import create_pro_checkout_session
+        result = create_pro_checkout_session(email, name)
+        return jsonify(result)
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        logger.error(f"Pro subscription error: {str(e)}")
+        return jsonify({'error': 'Failed to create checkout session'}), 500
+
+
+@app.route('/api/pro/webhook', methods=['POST'])
+def stripe_webhook():
+    """
+    Handle Stripe webhook events
+    """
+    payload = request.data
+    sig_header = request.headers.get('Stripe-Signature')
+    
+    if not sig_header:
+        return jsonify({'error': 'Missing signature'}), 400
+    
+    try:
+        from pro_stripe import handle_webhook
+        handle_webhook(payload, sig_header)
+        return jsonify({'status': 'success'})
+    except ValueError as e:
+        logger.error(f"Webhook error: {str(e)}")
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        logger.error(f"Webhook error: {str(e)}")
+        return jsonify({'error': 'Webhook processing failed'}), 500
+
+
+@app.route('/api/pro/status', methods=['GET'])
+@handle_errors
+def pro_status():
+    """
+    Check Pro subscription status
+    """
+    from pro_auth import optional_pro_auth, g
+    
+    api_key = request.headers.get('X-API-Key')
+    if not api_key:
+        return jsonify({
+            'is_pro': False,
+            'message': 'No API key provided'
+        })
+    
+    from pro_auth import get_pro_user
+    user = get_pro_user(api_key)
+    
+    if user:
+        return jsonify({
+            'is_pro': True,
+            'name': user.get('name'),
+            'email': user.get('email'),
+            'plan': user.get('plan')
+        })
+    else:
+        return jsonify({
+            'is_pro': False,
+            'message': 'Invalid or expired API key'
+        })
+
+
 if __name__ == '__main__':
     logger.info("Starting SprueCrafter Backend API...")
     logger.info(f"Upload folder: {UPLOAD_FOLDER}")
     logger.info(f"Max file size: {app.config['MAX_CONTENT_LENGTH'] / (1024 * 1024):.0f}MB")
+    logger.info("Free access enabled - no login required for basic features")
+    logger.info("Pro features available with subscription via /api/pro/subscribe")
     app.run(host='127.0.0.1', port=5000, debug=True)

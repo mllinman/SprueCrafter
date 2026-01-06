@@ -8,7 +8,6 @@
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:electron\"",
     "dev:backend": "python src/backend/app.py",
     "dev:electron": "electron . --dev",
-    "dev:web": "set BACKEND_PORT=3000 && python src/backend/app_saas.py",
     "build": "electron-builder",
     "build:win": "electron-builder --win",
     "build:mac": "electron-builder --mac",

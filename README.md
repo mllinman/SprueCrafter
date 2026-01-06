@@ -2,17 +2,15 @@
 
 **Professional 3D Model to Sprue Conversion Tool for Resin Printing**
 
-SprueCrafter is a powerful application that converts 3D object data into 1/35th scale model sprues optimized for resin 3D printing. It rivals industry-standard quality from manufacturers like Meng and Takom, while providing modern tools for automatic part separation, categorization, and sprue generation.
+SprueCrafter is a powerful desktop application that converts 3D object data into 1/35th scale model sprues optimized for resin 3D printing. It rivals industry-standard quality from manufacturers like Meng and Takom, while providing modern tools for automatic part separation, categorization, and sprue generation.
 
-> **🚀 NEW: Marketing Website & Stripe Integration!** SprueCrafter now features a beautiful marketing website with Stripe-powered subscriptions. Visit the site to learn more and subscribe to Pro for $10/month. See [MARKETING_WEBSITE.md](MARKETING_WEBSITE.md) for setup details.
-
-> **🚀 NEW: SaaS Deployment Ready!** SprueCrafter now supports full SaaS deployment with authentication, database persistence, cloud storage, and horizontal scaling. See [SAAS_README.md](SAAS_README.md) and [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for details.
+> **🎉 FREE TO USE!** SprueCrafter is now completely free for all users. No login or registration required. Optional Pro subscription available for enhanced features and support.
 
 ![SprueCrafter Banner](assets/banner.png)
 
 ## Features
 
-### 🎯 Core Functionality
+### 🎯 Core Functionality (FREE)
 
 - **Universal 3D File Conversion**: Supports all major 3D formats (STL, OBJ, FBX, 3DS, PLY, GLTF, GLB, DAE, and more)
 - **Intelligent Scale Conversion**: Automatic scaling to 1/35th scale (or any custom scale)
@@ -47,7 +45,7 @@ Pre-configured profiles for popular resin printers:
 
 ## Installation
 
-### Desktop Application (Traditional)
+### Desktop Application
 
 #### Prerequisites
 
@@ -85,77 +83,38 @@ To run in development mode with auto-reload:
 npm run dev
 ```
 
-### SaaS Deployment (New!)
+## Pro Subscription (Optional)
 
-For deploying SprueCrafter as a web-based SaaS application:
+SprueCrafter offers an optional Pro subscription for users who want enhanced features and priority support:
 
-#### Quick Start with Docker Compose
-```bash
-# Copy and configure environment
-cp .env.example .env
-# Edit .env with your settings
-
-# Start all services
-docker-compose up -d
-
-# Initialize database
-docker-compose exec backend flask db upgrade
-docker-compose exec backend flask create-admin
-
-# Access at http://localhost:3000
-```
-
-#### Production Kubernetes Deployment
-```bash
-# Configure secrets
-kubectl create secret generic sprucecrafter-secrets \
-  --from-literal=SECRET_KEY="your-secret" \
-  -n sprucecrafter
-
-# Deploy
-kubectl apply -f k8s-deployment.yaml
-```
-
-**📖 For complete SaaS deployment instructions, see:**
-- [SAAS_README.md](SAAS_README.md) - Quick start guide
-- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) - Comprehensive deployment guide
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) - Architecture overview
-- [docs/MIGRATION_GUIDE.md](docs/MIGRATION_GUIDE.md) - Migration from desktop
-
-## Subscription Tiers
-
-SprueCrafter offers flexible pricing to suit your needs:
-
-### Free Tier
-- ✅ 10 conversions per month
-- ✅ Basic file format support
-- ✅ 1 GB storage
+### Free Tier (Default)
+- ✅ **All core features** - completely free!
+- ✅ Unlimited conversions
+- ✅ All file formats
+- ✅ All sprue generation features
 - ✅ Community support
 - **Price**: $0/forever
 
 ### Pro Tier ($10/month)
-- ✅ **Unlimited** conversions
-- ✅ All file formats
-- ✅ 50 GB storage
-- ✅ Priority support
-- ✅ Advanced sprue generation
-- ✅ Full API access
+- ✅ Everything in Free
+- ✅ Priority email support
+- ✅ Advanced batch processing
+- ✅ API access for automation
+- ✅ Early access to new features
+- ✅ Support development
 - **Price**: $10/month via Stripe
 
-See [MARKETING_WEBSITE.md](MARKETING_WEBSITE.md) for setup instructions and [public/index.html](public/index.html) for the marketing website.
+To subscribe to Pro, use the app's built-in subscription feature or visit the API endpoint `/api/pro/subscribe`.
 
-## SaaS Features
+### Pro API Configuration
 
-The SaaS version includes enterprise-grade features:
+If you're a Pro subscriber, you can set your API key for enhanced features:
 
-- **🔐 Authentication**: JWT-based user authentication with API keys
-- **💾 Database**: PostgreSQL for persistent data storage
-- **☁️ Cloud Storage**: S3-compatible file storage
-- **💳 Payments**: Stripe integration for Pro subscriptions
-- **📊 Monitoring**: Prometheus metrics and health checks
-- **🔄 CI/CD**: Automated build, test, and deployment
-- **⚖️ Scalability**: Horizontal pod autoscaling
-- **🛡️ Security**: Rate limiting, CORS, and encrypted secrets
+1. Subscribe via the app or API
+2. You'll receive an API key
+3. Use the key in API requests: `X-API-Key: your-key-here`
+4. Check your Pro status: `GET /api/pro/status`
+
 
 ## Usage Guide
 
@@ -241,6 +200,7 @@ The SaaS version includes enterprise-grade features:
   - Rotate, zoom, pan
   - Inspect details
   - Verify sprue layout
+
 
 ## Technical Details
 
@@ -357,6 +317,7 @@ Form Data:
   - files: multiple image files
 ```
 
+
 #### Printer Profiles
 ```
 GET /api/printer-profiles
@@ -367,6 +328,27 @@ Returns: JSON with available printer profiles (including Elegoo Saturn, Saturn 2
 ```
 GET /api/connector-types
 Returns: JSON with available connector types and descriptions
+```
+
+#### Pro Subscription (Optional)
+```
+POST /api/pro/subscribe
+JSON Body:
+  - email: user email
+  - name: user name (optional)
+Returns: Stripe checkout URL
+```
+
+```
+GET /api/pro/status
+Headers:
+  - X-API-Key: your Pro API key
+Returns: Pro subscription status
+```
+
+```
+POST /api/pro/webhook
+Stripe webhook endpoint for subscription events
 ```
 
 ## Building for Production
@@ -384,6 +366,7 @@ npm run build:linux  # Linux
 ```
 
 Compiled applications will be in the `dist/` directory.
+
 
 ## Tips for Best Results
 

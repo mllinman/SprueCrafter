@@ -14,12 +14,24 @@ For production deployments, replace with your actual domain.
 
 ## Authentication
 
-The desktop version does not require authentication. For SaaS deployments, see the SaaS API documentation.
+**Free Access (Default):** The app is completely free to use with no authentication required for all core features.
+
+**Optional Pro Subscription:** Pro users can authenticate using an API key in the request header:
+
+```
+X-API-Key: your-pro-api-key-here
+```
+
+Pro subscription provides:
+- Priority support
+- Advanced batch processing
+- API access for automation
+- Early access to new features
 
 ## Rate Limiting
 
-- Desktop: No rate limiting
-- SaaS: Rate limits apply per subscription tier (see SAAS_README.md)
+- **Free Users**: No rate limiting
+- **Pro Users**: Enhanced rate limits and priority processing
 
 ## Error Handling
 
@@ -607,3 +619,107 @@ For API issues or questions:
 
 **Version:** 1.0.0  
 **Last Updated:** 2026-01-01
+
+---
+
+## Pro Subscription Endpoints
+
+### Subscribe to Pro
+
+Create a Stripe checkout session for Pro subscription.
+
+**Endpoint:** `POST /api/pro/subscribe`
+
+**Request Body:**
+```json
+{
+  "email": "user@example.com",
+  "name": "John Doe"  // optional
+}
+```
+
+**Response:**
+```json
+{
+  "checkout_url": "https://checkout.stripe.com/...",
+  "session_id": "cs_test_..."
+}
+```
+
+**Example:**
+```bash
+curl -X POST http://localhost:5000/api/pro/subscribe \
+  -H "Content-Type: application/json" \
+  -d '{"email": "user@example.com", "name": "John Doe"}'
+```
+
+---
+
+### Check Pro Status
+
+Check if an API key is valid and get subscription status.
+
+**Endpoint:** `GET /api/pro/status`
+
+**Headers:**
+```
+X-API-Key: your-pro-api-key
+```
+
+**Response (Pro user):**
+```json
+{
+  "is_pro": true,
+  "name": "John Doe",
+  "email": "user@example.com",
+  "plan": "pro"
+}
+```
+
+**Response (Invalid key):**
+```json
+{
+  "is_pro": false,
+  "message": "Invalid or expired API key"
+}
+```
+
+**Example:**
+```bash
+curl http://localhost:5000/api/pro/status \
+  -H "X-API-Key: your-pro-api-key"
+```
+
+---
+
+### Stripe Webhook
+
+Handles Stripe webhook events for subscription management. This endpoint is called by Stripe automatically.
+
+**Endpoint:** `POST /api/pro/webhook`
+
+**Headers:**
+```
+Stripe-Signature: webhook-signature
+```
+
+**Note:** This endpoint is for Stripe's use only. Configure the webhook URL in your Stripe dashboard:
+`https://yourdomain.com/api/pro/webhook`
+
+---
+
+## Pro Features
+
+When authenticated with a Pro API key, users get access to:
+
+- **Priority Support**: Faster response times
+- **Batch Processing**: Process multiple files at once
+- **API Access**: Full programmatic access for automation
+- **Early Access**: New features before general release
+- **Support Development**: Help maintain and improve SprueCrafter
+
+To use Pro features, include your API key in the header:
+```
+X-API-Key: your-pro-api-key-here
+```
+
