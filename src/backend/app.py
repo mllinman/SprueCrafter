@@ -766,9 +766,9 @@ def save_custom_printer_profile():
         y = float(data["y"])
         z = float(data["z"])
         
-        # Validate dimensions are positive and within reasonable range (1-1000mm)
-        if not (1 <= x <= 1000 and 1 <= y <= 1000 and 1 <= z <= 1000):
-            return jsonify({"error": "Dimensions must be between 1 and 1000mm"}), 400
+        # Validate dimensions are positive and within reasonable range (1-2000mm for large format printers)
+        if not (1 <= x <= 2000 and 1 <= y <= 2000 and 1 <= z <= 2000):
+            return jsonify({"error": "Dimensions must be between 1 and 2000mm"}), 400
             
     except (ValueError, TypeError) as e:
         return jsonify({"error": "Invalid dimension values. Must be numbers."}), 400

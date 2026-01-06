@@ -809,8 +809,16 @@ function initializeTransform() {
       return;
     }
 
-    const axis = document.getElementById('rotate-axis').value;
-    let angle = parseFloat(document.getElementById('rotate-angle').value);
+    const axisEl = document.getElementById('rotate-axis');
+    const angleEl = document.getElementById('rotate-angle');
+    
+    if (!axisEl || !angleEl) {
+      showStatus('transform-status', 'Transform controls not available', 'error');
+      return;
+    }
+    
+    const axis = axisEl.value;
+    let angle = parseFloat(angleEl.value);
     
     // Validate angle input
     if (isNaN(angle)) {
