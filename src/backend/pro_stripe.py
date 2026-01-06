@@ -32,6 +32,11 @@ def create_pro_checkout_session(email, name=None):
         raise ValueError("Stripe Pro price ID not configured. Set STRIPE_PRO_PRICE_ID environment variable.")
     
     # Generate a unique API key for this user
+    # NOTE: In production, this API key should be delivered to the user via:
+    # 1. Email notification (recommended)
+    # 2. Displayed on success page after checkout
+    # 3. Available in user dashboard/portal
+    # For now, users will need to manually enter it in the app
     api_key = secrets.token_urlsafe(32)
     
     try:

@@ -7,9 +7,16 @@ from functools import wraps
 from flask import request, jsonify, g
 import os
 
-# Simple in-memory Pro user storage (in production, this would be a database)
-# Format: {api_key: {name, email, stripe_customer_id, stripe_subscription_id}}
+# Simple in-memory Pro user storage
+# NOTE: This is intentionally simple for the desktop app use case.
+# For production hosted deployments, replace this with:
+# - File-based storage (JSON/pickle)
+# - SQLite database
+# - Redis/memcached
+# - Full database (PostgreSQL/MySQL)
+# The API remains the same regardless of storage backend.
 PRO_USERS = {}
+# Format: {api_key: {name, email, stripe_customer_id, stripe_subscription_id}}
 
 
 def load_pro_users_from_env():

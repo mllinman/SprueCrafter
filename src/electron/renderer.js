@@ -1290,6 +1290,8 @@ function updateProUI(isPro, userData = null) {
 }
 
 // Pro subscription button handler
+// NOTE: Using browser prompts for simplicity in initial implementation.
+// TODO: Replace with proper modal dialogs for better UX in future versions.
 document.getElementById('pro-btn').addEventListener('click', async () => {
   if (isProUser) {
     // Show Pro info
