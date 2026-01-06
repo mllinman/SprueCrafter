@@ -130,6 +130,7 @@ body {
   padding: var(--spacing-lg) 0;
   display: flex;
   flex-direction: column;
+  transition: transform var(--transition-normal);
 }
 
 .sidebar-nav {
@@ -188,9 +189,11 @@ body {
   top: var(--spacing-lg);
   left: var(--spacing-lg);
   width: 400px;
+  max-width: calc(100vw - 48px);
   max-height: calc(100vh - 150px);
   z-index: 20;
   pointer-events: none;
+  overflow-y: auto;
 }
 
 .tab-content {
@@ -885,4 +888,352 @@ body {
 .pro-status svg {
   width: 16px;
   height: 16px;
+}
+
+/* ==============================================
+   RESPONSIVE DESIGN - Mobile & Tablet Support
+   ============================================== */
+
+/* Hamburger menu button (hidden by default on desktop) */
+.mobile-menu-toggle {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 8px;
+  margin-right: 8px;
+}
+
+.mobile-menu-toggle svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* Tablet breakpoint (1024px and below) */
+@media screen and (max-width: 1024px) {
+  .sidebar {
+    width: 200px;
+  }
+  
+  .tab-container {
+    width: 350px;
+  }
+  
+  .logo h1 {
+    font-size: 18px;
+  }
+  
+  .nav-btn {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+}
+
+/* Mobile landscape and small tablet (768px and below) */
+@media screen and (max-width: 768px) {
+  body {
+    overflow: auto;
+  }
+  
+  .app-header {
+    padding: 0 var(--spacing-md);
+    height: 56px;
+  }
+  
+  .logo h1 {
+    font-size: 16px;
+  }
+  
+  .logo svg {
+    width: 24px;
+    height: 24px;
+  }
+  
+  .version {
+    display: none;
+  }
+  
+  /* Show hamburger menu */
+  .mobile-menu-toggle {
+    display: block;
+  }
+  
+  /* Sidebar becomes overlay */
+  .sidebar {
+    position: fixed;
+    top: 56px;
+    left: 0;
+    width: 240px;
+    height: calc(100vh - 56px);
+    z-index: 150;
+    transform: translateX(-100%);
+    box-shadow: var(--shadow-lg);
+  }
+  
+  .sidebar.active {
+    transform: translateX(0);
+  }
+  
+  /* Tab container takes more space */
+  .tab-container {
+    width: calc(100vw - 32px);
+    max-width: 500px;
+    top: var(--spacing-md);
+    left: var(--spacing-md);
+    right: var(--spacing-md);
+    max-height: calc(100vh - 120px);
+  }
+  
+  .tab-content {
+    padding: var(--spacing-lg);
+  }
+  
+  .tab-content h2 {
+    font-size: 20px;
+  }
+  
+  /* Viewer controls repositioned */
+  .viewer-controls {
+    bottom: var(--spacing-lg);
+    right: var(--spacing-md);
+    padding: var(--spacing-xs);
+  }
+  
+  /* Simplify header */
+  .header-info {
+    gap: var(--spacing-sm);
+  }
+  
+  .btn-pro span {
+    display: none;
+  }
+  
+  .btn-pro {
+    padding: 8px 12px;
+  }
+  
+  /* Form adjustments */
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .transform-section {
+    padding: var(--spacing-sm);
+  }
+}
+
+/* Mobile portrait (480px and below) */
+@media screen and (max-width: 480px) {
+  .app-header {
+    padding: 0 var(--spacing-sm);
+    height: 52px;
+  }
+  
+  .logo {
+    gap: var(--spacing-sm);
+  }
+  
+  .logo h1 {
+    font-size: 14px;
+  }
+  
+  .logo svg {
+    width: 20px;
+    height: 20px;
+  }
+  
+  /* Hide settings button on very small screens */
+  #settings-btn {
+    display: none;
+  }
+  
+  .sidebar {
+    width: 200px;
+    top: 52px;
+    height: calc(100vh - 52px);
+  }
+  
+  .nav-btn {
+    padding: 8px 12px;
+    font-size: 12px;
+    gap: var(--spacing-sm);
+  }
+  
+  .nav-btn svg {
+    min-width: 18px;
+  }
+  
+  /* Tab container full width on small phones */
+  .tab-container {
+    width: calc(100vw - 16px);
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    max-height: calc(100vh - 80px);
+  }
+  
+  .tab-content {
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+  }
+  
+  .tab-content h2 {
+    font-size: 18px;
+    margin-bottom: var(--spacing-md);
+  }
+  
+  /* Buttons */
+  .btn-primary, .btn-secondary {
+    padding: 12px;
+    font-size: 14px;
+  }
+  
+  .form-control {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+  
+  .form-group label {
+    font-size: 11px;
+  }
+  
+  .form-group {
+    margin-bottom: var(--spacing-md);
+  }
+  
+  /* Viewer controls */
+  .viewer-controls {
+    bottom: var(--spacing-md);
+    right: var(--spacing-sm);
+    padding: 4px;
+    gap: 4px;
+  }
+  
+  .btn-icon {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .btn-icon svg {
+    width: 16px;
+    height: 16px;
+  }
+  
+  /* Upload zone */
+  .upload-zone {
+    padding: var(--spacing-lg);
+  }
+  
+  .upload-zone svg {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .upload-zone p {
+    font-size: 14px;
+  }
+  
+  .upload-zone small {
+    font-size: 11px;
+  }
+  
+  /* Status bar */
+  .status-bar {
+    padding: 0 var(--spacing-sm);
+    height: 28px;
+    font-size: 10px;
+  }
+  
+  /* File info grid */
+  #file-details {
+    grid-template-columns: 1fr;
+  }
+  
+  /* Marketplace grid */
+  .marketplace-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+  }
+  
+  /* Pro status badge */
+  .pro-status {
+    bottom: 12px;
+    right: 12px;
+    padding: 6px 12px;
+    font-size: 10px;
+  }
+  
+  /* Manual transform panel */
+  .manual-panel {
+    width: 120px;
+    padding: 10px;
+  }
+  
+  .manual-row input {
+    width: 60px;
+  }
+}
+
+/* Extra small devices (360px and below) */
+@media screen and (max-width: 360px) {
+  .app-header {
+    height: 48px;
+  }
+  
+  .logo h1 {
+    font-size: 12px;
+  }
+  
+  .btn-pro {
+    padding: 6px 8px;
+  }
+  
+  .btn-pro svg {
+    width: 14px;
+    height: 14px;
+  }
+  
+  .sidebar {
+    width: 180px;
+    top: 48px;
+    height: calc(100vh - 48px);
+  }
+  
+  .nav-btn span {
+    font-size: 11px;
+  }
+  
+  .tab-container {
+    width: calc(100vw - 8px);
+    top: 4px;
+    left: 4px;
+  }
+  
+  .tab-content {
+    padding: 12px;
+  }
+  
+  .tab-content h2 {
+    font-size: 16px;
+  }
+}
+
+/* Landscape orientation adjustments */
+@media screen and (max-height: 600px) and (orientation: landscape) {
+  .app-header {
+    height: 48px;
+  }
+  
+  .tab-container {
+    max-height: calc(100vh - 80px);
+  }
+  
+  .tab-content {
+    padding: var(--spacing-md);
+  }
+  
+  .form-group {
+    margin-bottom: 12px;
+  }
 }

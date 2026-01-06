@@ -106,6 +106,8 @@ document.addEventListener('DOMContentLoaded', () => {
 function initializeNavigation() {
   const navButtons = document.querySelectorAll('.nav-btn');
   const tabContents = document.querySelectorAll('.tab-content');
+  const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+  const sidebar = document.querySelector('.sidebar');
 
   navButtons.forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -121,8 +123,30 @@ function initializeNavigation() {
           tab.classList.add('active');
         }
       });
+      
+      // Close mobile menu after navigation on small screens
+      if (window.innerWidth <= 768 && sidebar) {
+        sidebar.classList.remove('active');
+      }
     });
   });
+  
+  // Mobile menu toggle
+  if (mobileMenuToggle && sidebar) {
+    mobileMenuToggle.addEventListener('click', () => {
+      sidebar.classList.toggle('active');
+    });
+    
+    // Close sidebar when clicking outside on mobile
+    document.addEventListener('click', (e) => {
+      if (window.innerWidth <= 768 && 
+          sidebar.classList.contains('active') &&
+          !sidebar.contains(e.target) && 
+          !mobileMenuToggle.contains(e.target)) {
+        sidebar.classList.remove('active');
+      }
+    });
+  }
 }
 
 // 3D Viewer Implementation
