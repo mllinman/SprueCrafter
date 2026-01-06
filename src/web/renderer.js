@@ -234,7 +234,10 @@ function initializeWorkspaceSettings() {
   if (upgradeProBtn) {
     upgradeProBtn.addEventListener('click', () => {
       // Trigger the same Pro subscription flow as the main pro-btn
-      document.getElementById('pro-btn').click();
+      const proBtn = document.getElementById('pro-btn');
+      if (proBtn) {
+        proBtn.click();
+      }
     });
   }
 }
