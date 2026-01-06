@@ -58,6 +58,9 @@ const API_BASE =
     ? 'http://127.0.0.1:5000/api'
     : '/api'; // Use relative path for Railway deployment
 
+// Responsive breakpoint constant (matches CSS media query)
+const MOBILE_BREAKPOINT = 768;
+
 let currentFile = null;
 let currentFiles = [];
 
@@ -129,7 +132,7 @@ function initializeNavigation() {
       });
 
       // Close mobile menu after navigation on small screens
-      if (window.innerWidth <= 768 && sidebar) {
+      if (window.innerWidth <= MOBILE_BREAKPOINT && sidebar) {
         sidebar.classList.remove('active');
       }
     });
@@ -144,7 +147,7 @@ function initializeNavigation() {
     // Close sidebar when clicking outside on mobile
     document.addEventListener('click', (e) => {
       if (
-        window.innerWidth <= 768 &&
+        window.innerWidth <= MOBILE_BREAKPOINT &&
         sidebar.classList.contains('active') &&
         !sidebar.contains(e.target) &&
         !mobileMenuToggle.contains(e.target)

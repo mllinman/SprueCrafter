@@ -46,6 +46,9 @@
   /* Transitions */
   --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* Responsive layout */
+  --tab-container-margin: 48px;
 }
 
 * {
@@ -192,7 +195,7 @@ body {
   top: var(--spacing-lg);
   left: var(--spacing-lg);
   width: 400px;
-  max-width: calc(100vw - 48px);
+  max-width: calc(100vw - var(--tab-container-margin));
   max-height: calc(100vh - 150px);
   z-index: 20;
   pointer-events: none;
