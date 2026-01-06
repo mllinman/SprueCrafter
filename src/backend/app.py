@@ -3,7 +3,7 @@ SprueCrafter Backend API
 Main Flask application for 3D model processing and sprue generation
 """
 
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, jsonify, send_file, send_from_directory
 from flask_cors import CORS
 import os
 import sys
@@ -11,6 +11,10 @@ import tempfile
 import traceback
 import logging
 from functools import wraps
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Configure logging
 logging.basicConfig(
@@ -30,11 +34,22 @@ from core.photo_to_model import PhotoToModel
 from core.transformer import Transformer
 from core.support_generator import SupportGenerator
 
-app = Flask(__name__)
-CORS(app)
+app = Flask(__name__, static_folder='../web', static_url_path='')
+
+# Configure CORS - allow Railway domains and localhost
+CORS(app, resources={
+    r"/api/*": {
+        "origins": [
+            "http://localhost:*",
+            "http://127.0.0.1:*",
+            "https://*.railway.app",
+            "https://*.up.railway.app"
+        ]
+    }
+})
 
 # Configure upload folder
-UPLOAD_FOLDER = tempfile.mkdtemp()
+UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER', tempfile.mkdtemp())
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB max file size
@@ -103,8 +118,39 @@ def health_check():
     return jsonify({
         'status': 'ok',
         'message': 'SprueCrafter API is running',
-        'version': '1.0.0'
+        'version': '1.0.0',
+        'mode': 'web' if os.getenv('RAILWAY_ENVIRONMENT') else 'desktop'
     })
+
+
+@app.route('/')
+def index():
+    """Serve the web UI"""
+    # Check if web UI exists, otherwise return API info
+    web_index = os.path.join(app.static_folder, 'index.html') if app.static_folder else None
+    if web_index and os.path.exists(web_index):
+        return send_from_directory(app.static_folder, 'index.html')
+    else:
+        return jsonify({
+            'name': 'SprueCrafter API',
+            'version': '1.0.0',
+            'description': 'Professional 3D Model to Sprue Conversion Tool for Resin Printing',
+            'docs': '/api/health',
+            'endpoints': {
+                'health': '/api/health',
+                'convert': '/api/convert',
+                'scale': '/api/scale',
+                'separate': '/api/separate',
+                'generate_sprue': '/api/generate-sprue',
+                'transform': '/api/transform',
+                'generate_supports': '/api/generate-supports',
+                'photo_to_model': '/api/photo-to-model',
+                'printer_profiles': '/api/printer-profiles',
+                'connector_types': '/api/connector-types',
+                'pro_subscribe': '/api/pro/subscribe',
+                'pro_status': '/api/pro/status'
+            }
+        })
 
 
 @app.route('/api/convert', methods=['POST'])
@@ -608,9 +654,21 @@ def pro_status():
 
 
 if __name__ == '__main__':
+    # Get configuration from environment variables
+    host = os.getenv('HOST', '127.0.0.1')
+    port = int(os.getenv('PORT', 5000))
+    debug = os.getenv('FLASK_DEBUG', 'True').lower() == 'true'
+    
     logger.info("Starting SprueCrafter Backend API...")
+    logger.info(f"Host: {host}")
+    logger.info(f"Port: {port}")
     logger.info(f"Upload folder: {UPLOAD_FOLDER}")
     logger.info(f"Max file size: {app.config['MAX_CONTENT_LENGTH'] / (1024 * 1024):.0f}MB")
     logger.info("Free access enabled - no login required for basic features")
     logger.info("Pro features available with subscription via /api/pro/subscribe")
-    app.run(host='127.0.0.1', port=5000, debug=True)
+    
+    # Check if running on Railway
+    if os.getenv('RAILWAY_ENVIRONMENT'):
+        logger.info(f"Running on Railway environment: {os.getenv('RAILWAY_ENVIRONMENT')}")
+    
+    app.run(host=host, port=port, debug=debug)
