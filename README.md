@@ -376,19 +376,28 @@ Stripe webhook endpoint for subscription events
 
 ## Building for Production
 
-### Build for all platforms
-```bash
-npm run build
-```
+### Desktop Application Builds
 
-### Platform-specific builds
+Build Electron desktop applications for distribution:
+
 ```bash
-npm run build:win    # Windows
-npm run build:mac    # macOS
-npm run build:linux  # Linux
+npm run build           # All platforms
+npm run build:win       # Windows
+npm run build:mac       # macOS
+npm run build:linux     # Linux
 ```
 
 Compiled applications will be in the `dist/` directory.
+
+### Web Application (SaaS) Deployment
+
+Deploy SprueCrafter as a web application on Railway:
+
+**Quick Start**: See [RAILWAY_QUICKSTART.md](RAILWAY_QUICKSTART.md) for 5-minute deployment guide.
+
+**Detailed Guide**: See [RAILWAY_DEPLOYMENT.md](RAILWAY_DEPLOYMENT.md) for comprehensive deployment instructions.
+
+**Test Locally**: Run `./test_railway_deploy.sh` to test Railway deployment configuration locally.
 
 
 ## Tips for Best Results
