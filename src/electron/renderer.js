@@ -1781,7 +1781,7 @@ function loadPrintNotes() {
       </div>
       ${note.additionalNotes ? `<p style="font-size: 11px; color: var(--text-secondary); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-color);">${escapeHtml(note.additionalNotes)}</p>` : ''}
       <div class="note-item-actions">
-        <button data-note-id="${note.id}">Delete</button>
+        <button data-note-id="${escapeHtml(String(note.id))}">Delete</button>
       </div>
     </div>
   `).join('');

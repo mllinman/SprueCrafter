@@ -760,6 +760,19 @@ def save_custom_printer_profile():
     if not data or "name" not in data or "x" not in data or "y" not in data or "z" not in data:
         return jsonify({"error": "Missing required fields: name, x, y, z"}), 400
     
+    # Validate and convert dimensions
+    try:
+        x = float(data["x"])
+        y = float(data["y"])
+        z = float(data["z"])
+        
+        # Validate dimensions are positive and within reasonable range (1-1000mm)
+        if not (1 <= x <= 1000 and 1 <= y <= 1000 and 1 <= z <= 1000):
+            return jsonify({"error": "Dimensions must be between 1 and 1000mm"}), 400
+            
+    except (ValueError, TypeError) as e:
+        return jsonify({"error": "Invalid dimension values. Must be numbers."}), 400
+    
     # For MVP, we'll just return success
     # In production, this would save to database with user authentication
     logger.info(f"Custom printer profile saved: {data['name']}")
@@ -770,9 +783,9 @@ def save_custom_printer_profile():
         "profile": {
             "name": data["name"],
             "build_volume": {
-                "x": float(data["x"]),
-                "y": float(data["y"]),
-                "z": float(data["z"])
+                "x": x,
+                "y": y,
+                "z": z
             }
         }
     })
