@@ -11,7 +11,6 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -477,67 +476,6 @@
         <span id="api-status">API Connected<span class="status-dot"></span></span>
       </div>
     </footer>
-  </div>
-
-  <!-- Auth Modal -->
-  <div id="auth-modal" class="modal hidden">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2 id="auth-title">Welcome Back</h2>
-        <button class="close-modal">&times;</button>
-      </div>
-      <div class="modal-body">
-        <div id="login-form">
-          <div class="form-group">
-            <label>Email</label>
-            <input type="email" id="login-email">
-          </div>
-          <div class="form-group">
-            <label>Password</label>
-            <input type="password" id="login-password">
-          </div>
-          <button id="do-login-btn" class="btn btn-primary btn-full">Sign In</button>
-          <div class="divider"><span>OR</span></div>
-          <button id="google-login-btn" class="btn btn-outline btn-full g-btn">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" width="18">
-            Continue with Google
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Profile Modal -->
-  <div id="profile-modal" class="modal hidden">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>Your Profile</h2>
-        <button class="close-modal">&times;</button>
-      </div>
-      <div class="modal-body profile-grid">
-        <div class="profile-left">
-          <div class="user-big-avatar" id="edit-avatar">JS</div>
-          <button class="btn btn-outline btn-sm">Change Photo</button>
-        </div>
-        <div class="profile-right">
-          <div class="form-group">
-            <label>Username</label>
-            <input type="text" id="profile-username">
-          </div>
-          <div class="form-group">
-            <label>Bio</label>
-            <textarea id="profile-bio"></textarea>
-          </div>
-          <div class="form-group">
-            <label>Industry</label>
-            <input type="text" id="profile-industry" placeholder="e.g. Miniature Painting">
-          </div>
-          <button id="save-profile-btn" class="btn btn-primary">Save Profile</button>
-          <hr>
-          <button id="logout-btn" class="btn btn-danger btn-sm">Sign Out</button>
-        </div>
-      </div>
-    </div>
   </div>
 
   <!-- Pro Status Badge -->
