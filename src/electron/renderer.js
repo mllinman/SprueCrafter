@@ -812,6 +812,12 @@ function initializeTransform() {
     const axis = document.getElementById('rotate-axis').value;
     let angle = parseFloat(document.getElementById('rotate-angle').value);
     
+    // Validate angle input
+    if (isNaN(angle)) {
+      showStatus('transform-status', 'Please enter a valid angle', 'error');
+      return;
+    }
+    
     // Apply angle snapping if enabled
     if (snappingEnabled) {
       angle = applySnapping(angle, snapAngleStep);
@@ -863,6 +869,12 @@ function initializeTransform() {
     let x = parseFloat(document.getElementById('translate-x').value);
     let y = parseFloat(document.getElementById('translate-y').value);
     let z = parseFloat(document.getElementById('translate-z').value);
+    
+    // Validate inputs
+    if (isNaN(x) || isNaN(y) || isNaN(z)) {
+      showStatus('transform-status', 'Please enter valid translation values', 'error');
+      return;
+    }
     
     // Apply grid snapping if enabled
     if (snappingEnabled) {
@@ -918,6 +930,12 @@ function initializeTransform() {
       }
 
       const scaleFactor = parseFloat(document.getElementById('scale-factor').value);
+
+      // Validate scale factor
+      if (isNaN(scaleFactor) || scaleFactor <= 0) {
+        showStatus('transform-status', 'Please enter a valid positive scale factor', 'error');
+        return;
+      }
 
       try {
         showStatus('transform-status', 'Scaling model...', 'info');
@@ -1750,23 +1768,39 @@ function loadPrintNotes() {
   notesHistory.innerHTML = notes.map(note => `
     <div class="note-item">
       <div class="note-item-header">
-        <div class="note-item-title">${note.modelName || 'Untitled'}</div>
+        <div class="note-item-title">${escapeHtml(note.modelName || 'Untitled')}</div>
         <div class="note-item-date">${new Date(note.date).toLocaleDateString()}</div>
       </div>
       <div class="note-item-details">
-        ${note.modelType ? `<div class="note-item-detail"><span class="note-item-detail-label">Type</span><span class="note-item-detail-value">${note.modelType}</span></div>` : ''}
-        ${note.modelScale ? `<div class="note-item-detail"><span class="note-item-detail-label">Scale</span><span class="note-item-detail-value">${note.modelScale}</span></div>` : ''}
-        ${note.printer ? `<div class="note-item-detail"><span class="note-item-detail-label">Printer</span><span class="note-item-detail-value">${note.printer}</span></div>` : ''}
-        ${note.resin ? `<div class="note-item-detail"><span class="note-item-detail-label">Resin</span><span class="note-item-detail-value">${note.resin}</span></div>` : ''}
-        ${note.printTime ? `<div class="note-item-detail"><span class="note-item-detail-label">Print Time</span><span class="note-item-detail-value">${note.printTime}</span></div>` : ''}
-        ${note.temperature ? `<div class="note-item-detail"><span class="note-item-detail-label">Temperature</span><span class="note-item-detail-value">${note.temperature}°${note.temperatureUnit}</span></div>` : ''}
+        ${note.modelType ? `<div class="note-item-detail"><span class="note-item-detail-label">Type</span><span class="note-item-detail-value">${escapeHtml(note.modelType)}</span></div>` : ''}
+        ${note.modelScale ? `<div class="note-item-detail"><span class="note-item-detail-label">Scale</span><span class="note-item-detail-value">${escapeHtml(note.modelScale)}</span></div>` : ''}
+        ${note.printer ? `<div class="note-item-detail"><span class="note-item-detail-label">Printer</span><span class="note-item-detail-value">${escapeHtml(note.printer)}</span></div>` : ''}
+        ${note.resin ? `<div class="note-item-detail"><span class="note-item-detail-label">Resin</span><span class="note-item-detail-value">${escapeHtml(note.resin)}</span></div>` : ''}
+        ${note.printTime ? `<div class="note-item-detail"><span class="note-item-detail-label">Print Time</span><span class="note-item-detail-value">${escapeHtml(note.printTime)}</span></div>` : ''}
+        ${note.temperature ? `<div class="note-item-detail"><span class="note-item-detail-label">Temperature</span><span class="note-item-detail-value">${escapeHtml(note.temperature)}°${escapeHtml(note.temperatureUnit)}</span></div>` : ''}
       </div>
-      ${note.additionalNotes ? `<p style="font-size: 11px; color: var(--text-secondary); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-color);">${note.additionalNotes}</p>` : ''}
+      ${note.additionalNotes ? `<p style="font-size: 11px; color: var(--text-secondary); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-color);">${escapeHtml(note.additionalNotes)}</p>` : ''}
       <div class="note-item-actions">
-        <button onclick="deleteNote(${note.id})">Delete</button>
+        <button data-note-id="${note.id}">Delete</button>
       </div>
     </div>
   `).join('');
+  
+  // Add event listeners to delete buttons
+  notesHistory.querySelectorAll('.note-item-actions button').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const noteId = parseInt(e.target.getAttribute('data-note-id'));
+      deleteNote(noteId);
+    });
+  });
+}
+
+// Helper function to escape HTML and prevent XSS
+function escapeHtml(text) {
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
 }
 
 function deleteNote(noteId) {
@@ -1800,9 +1834,11 @@ function checkModelBounds(model) {
   const size = new THREE.Vector3();
   box.getSize(size);
   
-  const exceedsX = size.x > currentBuildPlate.x;
-  const exceedsY = size.y > currentBuildPlate.z; // Y in 3D = Z height in build volume
-  const exceedsZ = size.z > currentBuildPlate.y; // Z in 3D = Y depth in build volume
+  // Build plate: x = width, y = depth, z = height
+  // Model: x = width, y = height (vertical), z = depth
+  const exceedsX = size.x > currentBuildPlate.x; // Width
+  const exceedsY = size.y > currentBuildPlate.z; // Height (model Y vs plate Z)
+  const exceedsZ = size.z > currentBuildPlate.y; // Depth (model Z vs plate Y)
   
   if (exceedsX || exceedsY || exceedsZ) {
     showBoundsWarning(size, currentBuildPlate);
@@ -1822,7 +1858,7 @@ function showBoundsWarning(modelSize, plateSize) {
     Depth (Z): ${modelSize.z.toFixed(2)} mm ${modelSize.z > plateSize.y ? '⚠️ EXCEEDS' : '✓'}<br>
     <br>
     <strong>Build Plate Limits:</strong><br>
-    ${plateSize.x} × ${plateSize.y} × ${plateSize.z} mm
+    Width × Depth × Height: ${plateSize.x} × ${plateSize.y} × ${plateSize.z} mm
   `;
   
   dialog.classList.remove('hidden');
