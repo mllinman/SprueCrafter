@@ -45,7 +45,22 @@ Pre-configured profiles for popular resin printers:
 
 ## Installation
 
-### Desktop Application
+SprueCrafter can be used in two ways:
+
+### Option 1: Web Application (SaaS)
+
+Access SprueCrafter directly in your browser without installation:
+- **No downloads required**
+- **Works on any device** with a web browser
+- **Always up-to-date** with latest features
+
+**Deployment Options:**
+- Use a hosted instance (if available)
+- Deploy your own on Railway (see [Railway Deployment Guide](RAILWAY_DEPLOYMENT.md))
+
+### Option 2: Desktop Application
+
+For local, offline use with full control.
 
 #### Prerequisites
 
@@ -82,6 +97,14 @@ To run in development mode with auto-reload:
 ```bash
 npm run dev
 ```
+
+### Web-Only Mode (No Electron)
+
+To run just the web interface without Electron (useful for testing web deployment):
+```bash
+python src/backend/app.py
+```
+Then visit `http://localhost:5000` in your browser.
 
 ## Pro Subscription (Optional)
 
@@ -353,19 +376,28 @@ Stripe webhook endpoint for subscription events
 
 ## Building for Production
 
-### Build for all platforms
-```bash
-npm run build
-```
+### Desktop Application Builds
 
-### Platform-specific builds
+Build Electron desktop applications for distribution:
+
 ```bash
-npm run build:win    # Windows
-npm run build:mac    # macOS
-npm run build:linux  # Linux
+npm run build           # All platforms
+npm run build:win       # Windows
+npm run build:mac       # macOS
+npm run build:linux     # Linux
 ```
 
 Compiled applications will be in the `dist/` directory.
+
+### Web Application (SaaS) Deployment
+
+Deploy SprueCrafter as a web application on Railway:
+
+**Quick Start**: See [RAILWAY_QUICKSTART.md](RAILWAY_QUICKSTART.md) for 5-minute deployment guide.
+
+**Detailed Guide**: See [RAILWAY_DEPLOYMENT.md](RAILWAY_DEPLOYMENT.md) for comprehensive deployment instructions.
+
+**Test Locally**: Run `./test_railway_deploy.sh` to test Railway deployment configuration locally.
 
 
 ## Tips for Best Results
