@@ -25,20 +25,13 @@ rtree==1.4.1
 # API & Backend
 flask==3.1.0
 flask-cors==5.0.0
-flask-sqlalchemy==3.1.1
-flask-migrate==4.0.7
-flask-jwt-extended==4.6.0
-flask-limiter==3.8.0
 python-dotenv==1.0.1
 
-# Production Server
+# Production Server (optional)
 gunicorn==23.0.0
 
-# Payment Processing
+# Payment Processing (for Pro subscriptions only)
 stripe==11.3.0
-
-# Monitoring
-prometheus-flask-exporter==0.23.1
 
 # Utilities
 tqdm==4.67.1
