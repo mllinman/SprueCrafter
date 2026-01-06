@@ -39,6 +39,12 @@ package-lock.json
 .npm/
 .eslintcache
 
+# Next.js
+.next/
+out/
+next-env.d.ts
+
+
 # IDEs
 .vscode/
 .idea/
