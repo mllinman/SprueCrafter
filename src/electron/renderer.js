@@ -57,7 +57,6 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Navigation MUST be first to ensure UI responsiveness even if 3D fails
   initializeNavigation();
-  initializeAuth();
   initializeMarketplace();
   initializeWorkspaceSettings();
   
@@ -222,7 +221,7 @@ function initializeWorkspaceSettings() {
       if (email) {
         axios.post(`${API_BASE}/share/friends`, { emails: [email] })
           .then(() => alert("Shared successfully!"))
-          .catch(() => alert("Login to share assets."));
+          .catch(() => alert("Pro subscription required to share assets."));
       }
     });
   }
@@ -909,99 +908,6 @@ function initializePhoto() {
   });
 }
 
-// ==================== SaaS & Authentication ====================
-
-function initializeAuth() {
-  const loginBtn = document.getElementById('login-btn');
-  const registerBtn = document.getElementById('register-btn');
-  const authModal = document.getElementById('auth-modal');
-  const doLoginBtn = document.getElementById('do-login-btn');
-  const profileTrigger = document.getElementById('profile-trigger');
-  const profileModal = document.getElementById('profile-modal');
-  const logoutBtn = document.getElementById('logout-btn');
-  const closeBtns = document.querySelectorAll('.close-modal');
-
-  // Modal Toggles
-  loginBtn.addEventListener('click', () => authModal.classList.remove('hidden'));
-  registerBtn.addEventListener('click', () => {
-    alert("Pro Registration is open! Please sign in with Google or use the login form.");
-    authModal.classList.remove('hidden');
-  });
-  profileTrigger.addEventListener('click', () => profileModal.classList.remove('hidden'));
-  
-  closeBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      authModal.classList.add('hidden');
-      profileModal.classList.add('hidden');
-    });
-  });
-
-  // Login Logic
-  doLoginBtn.addEventListener('click', async () => {
-    const email = document.getElementById('login-email').value;
-    const password = document.getElementById('login-password').value;
-
-    // Static Admin Check (Detroit1977!!)
-    if (email === 'admin' && password === 'Detroit1977!!') {
-      alert("Admin Access Granted");
-      updateAuthState({ username: 'admin', plan: 'pro', is_admin: true });
-      authModal.classList.add('hidden');
-      return;
-    }
-
-    try {
-      showStatus('status-text', 'Signing in...', 'info');
-      const res = await axios.post(`${API_BASE}/auth/login`, { username: email, password });
-      localStorage.setItem('sc_token', res.data.access_token);
-      updateAuthState(res.data.user);
-      authModal.classList.add('hidden');
-      updateStatus('Signed in successfully', 'success');
-    } catch (err) {
-      updateStatus('Invalid credentials', 'error');
-    }
-  });
-
-  logoutBtn.addEventListener('click', () => {
-    localStorage.removeItem('sc_token');
-    window.location.reload();
-  });
-
-  // Check existing auth
-  const token = localStorage.getItem('sc_token');
-  if (token) {
-    checkToken(token);
-  }
-}
-
-async function checkToken(token) {
-  try {
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    const res = await axios.get(`${API_BASE}/auth/me`);
-    updateAuthState(res.data);
-  } catch (e) {
-    localStorage.removeItem('sc_token');
-  }
-}
-
-function updateAuthState(user) {
-  const authSection = document.getElementById('auth-section');
-  const userSection = document.getElementById('user-section');
-  const initials = document.getElementById('user-initials');
-  const planBadge = document.getElementById('user-plan');
-  
-  authSection.classList.add('hidden');
-  userSection.classList.remove('hidden');
-  
-  initials.textContent = user.username.substring(0, 2).toUpperCase();
-  planBadge.textContent = user.plan.toUpperCase();
-  if (user.plan === 'pro') planBadge.style.background = 'var(--accent-primary)';
-
-  // Populate profile
-  document.getElementById('profile-username').value = user.username;
-  document.getElementById('profile-bio').value = user.bio || '';
-  document.getElementById('profile-industry').value = user.industry || '';
-}
-
 // ==================== Marketplace ====================
 
 async function initializeMarketplace() {
@@ -1078,7 +984,7 @@ async function initializePrinterProfiles() {
       document.getElementById('plate-z').value = '245';
       updateStatus('Custom printer profile saved!', 'success');
     } catch (e) {
-      updateStatus('Login required to save custom printers', 'error');
+      updateStatus('Pro subscription required to save custom printers', 'error');
     }
   });
 
