@@ -54,6 +54,9 @@ initializeDependencies();
 
 const API_BASE = 'http://127.0.0.1:5000/api';
 
+// Responsive breakpoint constant (matches CSS media query)
+const MOBILE_BREAKPOINT = 768;
+
 let currentFile = null;
 let currentFiles = [];
 
@@ -106,6 +109,8 @@ document.addEventListener('DOMContentLoaded', () => {
 function initializeNavigation() {
   const navButtons = document.querySelectorAll('.nav-btn');
   const tabContents = document.querySelectorAll('.tab-content');
+  const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+  const sidebar = document.querySelector('.sidebar');
 
   navButtons.forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -121,8 +126,39 @@ function initializeNavigation() {
           tab.classList.add('active');
         }
       });
+
+      // Close mobile menu after navigation on small screens
+      if (window.innerWidth <= MOBILE_BREAKPOINT && sidebar) {
+        sidebar.classList.remove('active');
+        if (mobileMenuToggle) {
+          mobileMenuToggle.setAttribute('aria-expanded', 'false');
+        }
+      }
     });
   });
+
+  // Mobile menu toggle
+  if (mobileMenuToggle && sidebar) {
+    mobileMenuToggle.addEventListener('click', () => {
+      sidebar.classList.toggle('active');
+      // Update aria-expanded for accessibility
+      const isExpanded = sidebar.classList.contains('active');
+      mobileMenuToggle.setAttribute('aria-expanded', isExpanded.toString());
+    });
+
+    // Close sidebar when clicking outside on mobile
+    document.addEventListener('click', (e) => {
+      if (
+        window.innerWidth <= MOBILE_BREAKPOINT &&
+        sidebar.classList.contains('active') &&
+        !sidebar.contains(e.target) &&
+        !mobileMenuToggle.contains(e.target)
+      ) {
+        sidebar.classList.remove('active');
+        mobileMenuToggle.setAttribute('aria-expanded', 'false');
+      }
+    });
+  }
 }
 
 // 3D Viewer Implementation
