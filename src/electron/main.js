@@ -41,7 +41,7 @@ function createWindow() {
 
 function startPythonBackend() {
   const pythonScript = path.join(__dirname, '../backend/app.py');
-  
+
   pythonProcess = spawn('python', [pythonScript]);
 
   pythonProcess.stdout.on('data', (data) => {
@@ -59,7 +59,7 @@ function startPythonBackend() {
 
 app.whenReady().then(() => {
   createWindow();
-  
+
   // Start Python backend
   // Note: In production, handle this more robustly
   // startPythonBackend();
@@ -89,7 +89,7 @@ ipcMain.handle('select-file', async () => {
       { name: 'All Files', extensions: ['*'] }
     ]
   });
-  
+
   if (!result.canceled && result.filePaths.length > 0) {
     return result.filePaths[0];
   }
@@ -104,7 +104,7 @@ ipcMain.handle('select-multiple-files', async () => {
       { name: 'All Files', extensions: ['*'] }
     ]
   });
-  
+
   if (!result.canceled && result.filePaths.length > 0) {
     return result.filePaths;
   }
@@ -119,7 +119,7 @@ ipcMain.handle('save-file', async (event, defaultPath) => {
       { name: 'All Files', extensions: ['*'] }
     ]
   });
-  
+
   if (!result.canceled) {
     return result.filePath;
   }
