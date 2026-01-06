@@ -4,7 +4,16 @@
  */
 
 // Environment detection and safe requires
-let ipcRenderer, axios, FormData, fs, path, THREE, OrbitControls, STLLoader, OBJLoader, TransformControls;
+let ipcRenderer,
+  axios,
+  FormData,
+  fs,
+  path,
+  THREE,
+  OrbitControls,
+  STLLoader,
+  OBJLoader,
+  TransformControls;
 
 function initializeDependencies() {
   try {
@@ -19,19 +28,20 @@ function initializeDependencies() {
         OrbitControls = require('three/examples/jsm/controls/OrbitControls').OrbitControls;
         STLLoader = require('three/examples/jsm/loaders/STLLoader').STLLoader;
         OBJLoader = require('three/examples/jsm/loaders/OBJLoader').OBJLoader;
-        TransformControls = require('three/examples/jsm/controls/TransformControls').TransformControls;
+        TransformControls =
+          require('three/examples/jsm/controls/TransformControls').TransformControls;
       } catch (e) {
-        console.warn("Some Node modules failed to load, checking globals.", e);
+        console.warn('Some Node modules failed to load, checking globals.', e);
       }
     }
   } catch (err) {
-    console.error("Critical dependency loading failed:", err);
+    console.error('Critical dependency loading failed:', err);
   }
 
   // Web mode fallbacks (using globals from script tags)
   if (!axios && typeof window.axios !== 'undefined') axios = window.axios;
   if (!THREE && typeof window.THREE !== 'undefined') THREE = window.THREE;
-  
+
   if (THREE) {
     if (!OrbitControls) OrbitControls = THREE.OrbitControls;
     if (!STLLoader) STLLoader = THREE.STLLoader;
@@ -43,9 +53,10 @@ function initializeDependencies() {
 initializeDependencies();
 
 // Configure API base URL - use relative path for web deployment, localhost for desktop
-const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-  ? 'http://127.0.0.1:5000/api'
-  : '/api';  // Use relative path for Railway deployment
+const API_BASE =
+  window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://127.0.0.1:5000/api'
+    : '/api'; // Use relative path for Railway deployment
 
 let currentFile = null;
 let currentFiles = [];
@@ -56,13 +67,13 @@ const CANVAS_ID = 'viewer-canvas';
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
-  console.log("SprueCrafter Pro Initializing...");
-  
+  console.log('SprueCrafter Pro Initializing...');
+
   // Navigation MUST be first to ensure UI responsiveness even if 3D fails
   initializeNavigation();
   initializeMarketplace();
   initializeWorkspaceSettings();
-  
+
   initializeUpload();
   initializeConvert();
   initializeScale();
@@ -73,14 +84,14 @@ document.addEventListener('DOMContentLoaded', () => {
   initializePhoto();
   initializePrinterProfiles(); // Added this call
   checkBackendStatus();
-  
+
   // Initialize 3D Viewer (only if THREE is available)
   if (THREE) {
     init3DViewer();
   } else {
     updateStatus('3D Viewer disabled (Three.js not found)', 'error');
   }
-  
+
   // Check backend status periodically
   setInterval(checkBackendStatus, 10000);
 });
@@ -99,16 +110,16 @@ document.addEventListener('DOMContentLoaded', () => {
 function initializeNavigation() {
   const navButtons = document.querySelectorAll('.nav-btn');
   const tabContents = document.querySelectorAll('.tab-content');
-  
-  navButtons.forEach(btn => {
+
+  navButtons.forEach((btn) => {
     btn.addEventListener('click', () => {
       const tabId = btn.dataset.tab;
-      
+
       // Update active states
-      navButtons.forEach(b => b.classList.remove('active'));
+      navButtons.forEach((b) => b.classList.remove('active'));
       btn.classList.add('active');
-      
-      tabContents.forEach(tab => {
+
+      tabContents.forEach((tab) => {
         tab.classList.remove('active');
         if (tab.id === `${tabId}-tab`) {
           tab.classList.add('active');
@@ -122,20 +133,25 @@ function initializeNavigation() {
 function init3DViewer() {
   const canvas = document.getElementById(CANVAS_ID);
   const container = canvas.parentElement;
-  
+
   // Scene setup
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x050505);
-  
+
   // Camera setup
-  camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 2000);
+  camera = new THREE.PerspectiveCamera(
+    45,
+    container.clientWidth / container.clientHeight,
+    0.1,
+    2000
+  );
   camera.position.set(200, 200, 200);
-  
+
   // Renderer setup
   renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setSize(container.clientWidth, container.clientHeight);
   renderer.setPixelRatio(window.devicePixelRatio);
-  
+
   // Controls
   controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
@@ -144,39 +160,39 @@ function init3DViewer() {
   controls.minDistance = 10;
   controls.maxDistance = 1000;
   controls.maxPolarAngle = Math.PI / 1.5;
-  
+
   // Lights
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
   scene.add(ambientLight);
-  
+
   const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
   directionalLight.position.set(1, 1, 1);
   scene.add(directionalLight);
-  
+
   const pointLight = new THREE.PointLight(0x00f2ff, 0.5);
   pointLight.position.set(-100, 200, -100);
   scene.add(pointLight);
-  
+
   // Printer Plate (Build Volume Visualization)
   createPrinterPlate(192, 120, 245); // Default Saturn size
-  
+
   // Handle resize
   window.addEventListener('resize', onWindowResize);
-  
+
   // Extra controls from UI
   document.getElementById('reset-view-btn').addEventListener('click', () => {
     controls.reset();
     camera.position.set(200, 200, 200);
   });
-  
+
   document.getElementById('zoom-in-btn').addEventListener('click', () => {
     camera.position.multiplyScalar(0.9);
   });
-  
+
   document.getElementById('zoom-out-btn').addEventListener('click', () => {
     camera.position.multiplyScalar(1.1);
   });
-  
+
   // Transform Controls
   if (TransformControls) {
     transformControls = new TransformControls(camera, renderer.domElement);
@@ -186,7 +202,7 @@ function init3DViewer() {
     });
     scene.add(transformControls);
   }
-  
+
   animate();
 }
 
@@ -203,13 +219,13 @@ function initializeWorkspaceSettings() {
 
   // Transform Modes
   const modes = ['translate', 'rotate', 'scale'];
-  modes.forEach(mode => {
+  modes.forEach((mode) => {
     const btn = document.getElementById(`mode-${mode}`);
     if (btn) {
       btn.addEventListener('click', () => {
         if (transformControls) {
           transformControls.setMode(mode);
-          modes.forEach(m => document.getElementById(`mode-${m}`).classList.remove('active'));
+          modes.forEach((m) => document.getElementById(`mode-${m}`).classList.remove('active'));
           btn.classList.add('active');
         }
       });
@@ -222,9 +238,10 @@ function initializeWorkspaceSettings() {
     shareBtn.addEventListener('click', () => {
       const email = prompt("Enter friend's email to share this part:");
       if (email) {
-        axios.post(`${API_BASE}/share/friends`, { emails: [email] })
-          .then(() => alert("Shared successfully!"))
-          .catch(() => alert("Pro subscription required to share assets."));
+        axios
+          .post(`${API_BASE}/share/friends`, { emails: [email] })
+          .then(() => alert('Shared successfully!'))
+          .catch(() => alert('Pro subscription required to share assets.'));
       }
     });
   }
@@ -244,25 +261,25 @@ function initializeWorkspaceSettings() {
 
 function createPrinterPlate(width, depth, height) {
   if (printerPlate) scene.remove(printerPlate);
-  
+
   printerPlate = new THREE.Group();
-  
+
   // Grid
   const grid = new THREE.GridHelper(Math.max(width, depth) * 1.5, 20, 0x333333, 0x111111);
   printerPlate.add(grid);
-  
+
   // Plate surface
   const plateGeom = new THREE.BoxGeometry(width, 2, depth);
-  const plateMat = new THREE.MeshPhongMaterial({ 
-    color: 0x222222, 
-    transparent: true, 
+  const plateMat = new THREE.MeshPhongMaterial({
+    color: 0x222222,
+    transparent: true,
     opacity: 0.8,
     shininess: 100
   });
   const plateMesh = new THREE.Mesh(plateGeom, plateMat);
   plateMesh.position.y = -1;
   printerPlate.add(plateMesh);
-  
+
   // Frame/Volume outline
   const boxGeom = new THREE.BoxGeometry(width, height, depth);
   const edges = new THREE.EdgesGeometry(boxGeom);
@@ -270,8 +287,63 @@ function createPrinterPlate(width, depth, height) {
   const boxLines = new THREE.LineSegments(edges, lineMat);
   boxLines.position.y = height / 2;
   printerPlate.add(boxLines);
-  
+
   scene.add(printerPlate);
+
+  // Lock camera to build plate center and adjust distance based on size
+  lockCameraToBuildPlate(width, depth, height);
+}
+
+function lockCameraToBuildPlate(width, depth, height) {
+  if (!camera || !controls) return;
+
+  // Calculate the optimal camera distance based on build volume
+  // Use the largest dimension to ensure the entire build volume is visible
+  const maxDimension = Math.max(width, depth, height);
+  const fov = camera.fov * (Math.PI / 180); // Convert to radians
+  const cameraDistance = (maxDimension / Math.tan(fov / 2)) * 1.5; // 1.5x for comfortable view
+
+  // Set camera target to the center of the build plate (at mid-height)
+  const targetPosition = new THREE.Vector3(0, height / 2, 0);
+  controls.target.copy(targetPosition);
+
+  // Position camera at an optimal viewing angle (45 degrees elevation, 45 degrees azimuth)
+  const angle = Math.PI / 4; // 45 degrees
+  const cameraX = cameraDistance * Math.cos(angle);
+  const cameraY = cameraDistance * 0.7; // Slightly above center
+  const cameraZ = cameraDistance * Math.sin(angle);
+
+  // Animate camera movement for smooth transition
+  animateCameraToPosition(new THREE.Vector3(cameraX, cameraY, cameraZ), targetPosition);
+}
+
+function animateCameraToPosition(targetPos, targetLookAt, duration = 1000) {
+  if (!camera || !controls) return;
+
+  const startPos = camera.position.clone();
+  const startLookAt = controls.target.clone();
+  const startTime = Date.now();
+
+  function animate() {
+    const elapsed = Date.now() - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+
+    // Ease-in-out function for smooth animation
+    const eased = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+
+    // Interpolate camera position
+    camera.position.lerpVectors(startPos, targetPos, eased);
+
+    // Interpolate look-at target
+    controls.target.lerpVectors(startLookAt, targetLookAt, eased);
+    controls.update();
+
+    if (progress < 1) {
+      requestAnimationFrame(animate);
+    }
+  }
+
+  animate();
 }
 
 function animate() {
@@ -289,14 +361,17 @@ function onWindowResize() {
 }
 
 async function loadModelToViewer(fileSource) {
-  let filePath = (typeof fileSource === 'string') ? fileSource : (fileSource.path || URL.createObjectURL(fileSource));
-  const fileName = (typeof fileSource === 'string') ? path.basename(fileSource) : fileSource.name;
+  let filePath =
+    typeof fileSource === 'string'
+      ? fileSource
+      : fileSource.path || URL.createObjectURL(fileSource);
+  const fileName = typeof fileSource === 'string' ? path.basename(fileSource) : fileSource.name;
   const ext = fileName.split('.').pop().toLowerCase();
-  
+
   updateStatus(`Loading ${fileName}...`, 'info');
-  
+
   if (currentModel) scene.remove(currentModel);
-  
+
   try {
     const loader = ext === 'obj' ? new OBJLoader() : new STLLoader();
     let arrayBuffer;
@@ -310,21 +385,21 @@ async function loadModelToViewer(fileSource) {
       const response = await fetch(filePath);
       arrayBuffer = await response.arrayBuffer();
     }
-    
+
     let geometry;
-    let material = new THREE.MeshPhongMaterial({ 
-      color: 0x00f2ff, 
-      specular: 0x111111, 
-      shininess: 200 
+    let material = new THREE.MeshPhongMaterial({
+      color: 0x00f2ff,
+      specular: 0x111111,
+      shininess: 200
     });
-    
+
     if (ext === '.obj') {
       const text = new TextDecoder().decode(arrayBuffer);
       const group = loader.parse(text);
       currentModel = group;
-      
+
       // Apply professional material to all children
-      group.traverse(child => {
+      group.traverse((child) => {
         if (child.isMesh) {
           child.material = material;
         }
@@ -334,24 +409,24 @@ async function loadModelToViewer(fileSource) {
       geometry.center();
       currentModel = new THREE.Mesh(geometry, material);
     }
-    
+
     // Position model on plate
     const box = new THREE.Box3().setFromObject(currentModel);
     const size = box.getSize(new THREE.Vector3());
     currentModel.position.y = size.y / 2;
-    
+
     scene.add(currentModel);
-    
+
     // Attach transform controls
     if (transformControls) {
       transformControls.attach(currentModel);
     }
-    
+
     // Adjust camera to fit
     const maxDim = Math.max(size.x, size.y, size.z);
     camera.position.set(maxDim * 2, maxDim * 2, maxDim * 2);
     controls.target.set(0, size.y / 2, 0);
-    
+
     updateStatus('Model loaded in viewport', 'success');
   } catch (error) {
     console.error('Loader error:', error);
@@ -363,31 +438,31 @@ async function loadModelToViewer(fileSource) {
 function initializeUpload() {
   const uploadZone = document.getElementById('upload-zone');
   const fileInput = document.getElementById('file-input');
-  
+
   uploadZone.addEventListener('click', () => {
     fileInput.click();
   });
-  
+
   fileInput.addEventListener('change', (e) => {
     if (e.target.files.length > 0) {
       handleFileUpload(e.target.files[0]);
     }
   });
-  
+
   // Drag and drop
   uploadZone.addEventListener('dragover', (e) => {
     e.preventDefault();
     uploadZone.style.borderColor = 'var(--accent-primary)';
   });
-  
+
   uploadZone.addEventListener('dragleave', () => {
     uploadZone.style.borderColor = 'var(--border-color)';
   });
-  
+
   uploadZone.addEventListener('drop', (e) => {
     e.preventDefault();
     uploadZone.style.borderColor = 'var(--border-color)';
-    
+
     if (e.dataTransfer.files.length > 0) {
       handleFileUpload(e.dataTransfer.files[0]);
     }
@@ -396,10 +471,10 @@ function initializeUpload() {
 
 function handleFileUpload(file) {
   currentFile = file;
-  
+
   const fileInfo = document.getElementById('file-info');
   const fileDetails = document.getElementById('file-details');
-  
+
   fileDetails.innerHTML = `
     <div>
       <label>Filename</label>
@@ -410,10 +485,10 @@ function handleFileUpload(file) {
       <span>${formatFileSize(file.size)}</span>
     </div>
   `;
-  
+
   fileInfo.classList.remove('hidden');
   updateStatus('File loaded successfully', 'success');
-  
+
   // Load into 3D viewer (pass the whole file object)
   loadModelToViewer(file);
 }
@@ -421,33 +496,35 @@ function handleFileUpload(file) {
 // Convert functionality
 function initializeConvert() {
   const convertBtn = document.getElementById('convert-btn');
-  
+
   convertBtn.addEventListener('click', async () => {
     if (!currentFile) {
       showStatus('convert-status', 'Please upload a file first', 'error');
       return;
     }
-    
+
     const targetFormat = document.getElementById('target-format').value;
-    
+
     try {
       showStatus('convert-status', 'Converting file...', 'info');
       convertBtn.disabled = true;
-      
+
       const fd = new (FormData || window.FormData)();
       fd.append('file', currentFile);
       fd.append('format', targetFormat);
-      
+
       const response = await axios.post(`${API_BASE}/convert`, fd, {
         headers: fd.getHeaders ? fd.getHeaders() : {},
         responseType: 'arraybuffer'
       });
-      
+
       if (ipcRenderer) {
         // Desktop Mode
-        const savePath = await ipcRenderer.invoke('save-file', 
-          `${currentFile.name.split('.')[0]}_converted.${targetFormat}`);
-        
+        const savePath = await ipcRenderer.invoke(
+          'save-file',
+          `${currentFile.name.split('.')[0]}_converted.${targetFormat}`
+        );
+
         if (savePath) {
           fs.writeFileSync(savePath, Buffer.from(response.data));
           showStatus('convert-status', `File converted and saved`, 'success');
@@ -474,7 +551,7 @@ function initializeScale() {
   const scaleBtn = document.getElementById('scale-btn');
   const scaleSelect = document.getElementById('scale-select');
   const customScaleGroup = document.getElementById('custom-scale-group');
-  
+
   scaleSelect.addEventListener('change', () => {
     if (scaleSelect.value === 'custom') {
       customScaleGroup.classList.remove('hidden');
@@ -482,13 +559,13 @@ function initializeScale() {
       customScaleGroup.classList.add('hidden');
     }
   });
-  
+
   scaleBtn.addEventListener('click', async () => {
     if (!currentFile) {
       showStatus('scale-status', 'Please upload a file first', 'error');
       return;
     }
-    
+
     let scale = scaleSelect.value;
     if (scale === 'custom') {
       scale = document.getElementById('custom-scale').value;
@@ -497,27 +574,29 @@ function initializeScale() {
         return;
       }
     }
-    
+
     const unit = document.getElementById('unit-select').value;
-    
+
     try {
       showStatus('scale-status', 'Scaling model...', 'info');
       scaleBtn.disabled = true;
-      
+
       const fd = new (FormData || window.FormData)();
       fd.append('file', currentFile);
       fd.append('scale', scale);
       fd.append('unit', unit);
-      
+
       const response = await axios.post(`${API_BASE}/scale`, fd, {
         headers: fd.getHeaders ? fd.getHeaders() : {},
         responseType: 'arraybuffer'
       });
-      
+
       if (ipcRenderer) {
-        const savePath = await ipcRenderer.invoke('save-file', 
-          `${currentFile.name.split('.')[0]}_scaled.stl`);
-        
+        const savePath = await ipcRenderer.invoke(
+          'save-file',
+          `${currentFile.name.split('.')[0]}_scaled.stl`
+        );
+
         if (savePath) {
           fs.writeFileSync(savePath, Buffer.from(response.data));
           showStatus('scale-status', `Model scaled and saved`, 'success');
@@ -539,24 +618,24 @@ function initializeScale() {
 // Separate functionality
 function initializeSeparate() {
   const separateBtn = document.getElementById('separate-btn');
-  
+
   separateBtn.addEventListener('click', async () => {
     if (!currentFile) {
       showStatus('separate-status', 'Please upload a file first', 'error');
       return;
     }
-    
+
     try {
       showStatus('separate-status', 'Separating parts...', 'info');
       separateBtn.disabled = true;
-      
+
       const fd = new (FormData || window.FormData)();
       fd.append('file', currentFile);
-      
+
       const response = await axios.post(`${API_BASE}/separate`, fd, {
         headers: fd.getHeaders ? fd.getHeaders() : {}
       });
-      
+
       displayPartsInfo(response.data);
       showStatus('separate-status', `Found ${response.data.total_parts} parts`, 'success');
     } catch (error) {
@@ -571,24 +650,28 @@ function initializeSeparate() {
 function displayPartsInfo(data) {
   const partsList = document.getElementById('parts-list');
   const categorized = data.categorized;
-  
+
   let html = '';
   for (const [category, parts] of Object.entries(categorized)) {
     if (parts.length > 0) {
       html += `
         <div class="part-category">
           <h4 style="color: var(--accent-primary); margin: 10px 0; font-size: 13px;">${category} (${parts.length})</h4>
-          ${parts.map(part => `
+          ${parts
+            .map(
+              (part) => `
             <div class="part-item" style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px; padding:6px; background:rgba(255,255,255,0.05); border-radius:4px;">
               <span>${part.name}</span>
               <span style="color: var(--text-muted)">${part.vertices} v</span>
             </div>
-          `).join('')}
+          `
+            )
+            .join('')}
         </div>
       `;
     }
   }
-  
+
   partsList.innerHTML = html;
   partsList.classList.remove('hidden');
 }
@@ -597,34 +680,36 @@ function displayPartsInfo(data) {
 function initializeTransform() {
   const rotateBtn = document.getElementById('rotate-model-btn');
   const translateBtn = document.getElementById('translate-model-btn');
-  
+
   rotateBtn.addEventListener('click', async () => {
     if (!currentFile) {
       showStatus('transform-status', 'Please upload a file first', 'error');
       return;
     }
-    
+
     const axis = document.getElementById('rotate-axis').value;
     const angle = document.getElementById('rotate-angle').value;
-    
+
     try {
       showStatus('transform-status', 'Rotating model...', 'info');
       rotateBtn.disabled = true;
-      
+
       const fd = new (FormData || window.FormData)();
       fd.append('file', currentFile);
       fd.append('operation', 'rotate');
       fd.append('axis', axis);
       fd.append('angle', angle);
-      
+
       const response = await axios.post(`${API_BASE}/transform`, fd, {
         headers: fd.getHeaders ? fd.getHeaders() : {},
         responseType: 'arraybuffer'
       });
-      
+
       if (ipcRenderer) {
-        const savePath = await ipcRenderer.invoke('save-file', 
-          `${currentFile.name.split('.')[0]}_rotated.stl`);
+        const savePath = await ipcRenderer.invoke(
+          'save-file',
+          `${currentFile.name.split('.')[0]}_rotated.stl`
+        );
         if (savePath) {
           fs.writeFileSync(savePath, Buffer.from(response.data));
           showStatus('transform-status', 'Rotated successfully', 'success');
@@ -641,36 +726,38 @@ function initializeTransform() {
       rotateBtn.disabled = false;
     }
   });
-  
+
   translateBtn.addEventListener('click', async () => {
     if (!currentFile) {
       showStatus('transform-status', 'Please upload a file first', 'error');
       return;
     }
-    
+
     const x = document.getElementById('translate-x').value;
     const y = document.getElementById('translate-y').value;
     const z = document.getElementById('translate-z').value;
-    
+
     try {
       showStatus('transform-status', 'Translating model...', 'info');
       translateBtn.disabled = true;
-      
+
       const fd = new (FormData || window.FormData)();
       fd.append('file', currentFile);
       fd.append('operation', 'translate');
       fd.append('x', x);
       fd.append('y', y);
       fd.append('z', z);
-      
+
       const response = await axios.post(`${API_BASE}/transform`, fd, {
         headers: fd.getHeaders ? fd.getHeaders() : {},
         responseType: 'arraybuffer'
       });
-      
+
       if (ipcRenderer) {
-        const savePath = await ipcRenderer.invoke('save-file', 
-          `${currentFile.name.split('.')[0]}_translated.stl`);
+        const savePath = await ipcRenderer.invoke(
+          'save-file',
+          `${currentFile.name.split('.')[0]}_translated.stl`
+        );
         if (savePath) {
           fs.writeFileSync(savePath, Buffer.from(response.data));
           showStatus('transform-status', 'Translated successfully', 'success');
@@ -693,39 +780,41 @@ function initializeTransform() {
 function initializeSupports() {
   const generateBtn = document.getElementById('generate-supports-btn');
   const supportMode = document.getElementById('support-mode');
-  
+
   generateBtn.addEventListener('click', async () => {
     if (!currentFile) {
       showStatus('supports-status', 'Please upload a file first', 'error');
       return;
     }
-    
+
     const mode = supportMode.value;
     const overhangAngle = document.getElementById('overhang-angle').value;
     const density = document.getElementById('support-density').value;
-    
+
     try {
       showStatus('supports-status', 'Working...', 'info');
       generateBtn.disabled = true;
-      
+
       const fd = new (FormData || window.FormData)();
       fd.append('file', currentFile);
       fd.append('mode', mode);
       fd.append('overhang_angle', overhangAngle);
       fd.append('density', density);
-      
+
       const response = await axios.post(`${API_BASE}/generate-supports`, fd, {
         headers: fd.getHeaders ? fd.getHeaders() : {},
         responseType: mode === 'estimate' ? 'json' : 'arraybuffer'
       });
-      
+
       if (mode === 'estimate') {
         displaySupportsInfo(response.data);
         showStatus('supports-status', 'Estimation complete', 'success');
       } else {
         if (ipcRenderer) {
-          const savePath = await ipcRenderer.invoke('save-file', 
-            `${currentFile.name.split('.')[0]}_with_supports.stl`);
+          const savePath = await ipcRenderer.invoke(
+            'save-file',
+            `${currentFile.name.split('.')[0]}_with_supports.stl`
+          );
           if (savePath) {
             fs.writeFileSync(savePath, Buffer.from(response.data));
             showStatus('supports-status', 'Supports generated', 'success');
@@ -747,7 +836,7 @@ function initializeSupports() {
 
 function displaySupportsInfo(data) {
   const supportsInfo = document.getElementById('supports-info');
-  
+
   const html = `
     <h4 style="color:var(--accent-primary); font-size:14px; margin-bottom:8px;">Support Estimation</h4>
     <ul style="list-style:none; font-size:12px; color:var(--text-secondary);">
@@ -756,7 +845,7 @@ function displaySupportsInfo(data) {
       <li>• Material: ${data.estimated_material.toFixed(2)} mm³</li>
     </ul>
   `;
-  
+
   supportsInfo.innerHTML = html;
   supportsInfo.classList.remove('hidden');
 }
@@ -766,7 +855,7 @@ function initializeSprue() {
   const generateBtn = document.getElementById('generate-sprue-btn');
   const printerProfile = document.getElementById('printer-profile');
   const customBuildPlate = document.getElementById('custom-build-plate');
-  
+
   printerProfile.addEventListener('change', () => {
     if (printerProfile.value === 'custom') {
       customBuildPlate.classList.remove('hidden');
@@ -774,15 +863,15 @@ function initializeSprue() {
       customBuildPlate.classList.add('hidden');
     }
   });
-  
+
   generateBtn.addEventListener('click', async () => {
     if (!currentFile) {
       showStatus('sprue-status', 'Please upload a file first', 'error');
       return;
     }
-    
+
     let buildPlateX, buildPlateY, buildPlateZ;
-    
+
     if (printerProfile.value === 'custom') {
       buildPlateX = document.getElementById('plate-x').value;
       buildPlateY = document.getElementById('plate-y').value;
@@ -795,28 +884,30 @@ function initializeSprue() {
       buildPlateY = profile.build_volume.y;
       buildPlateZ = profile.build_volume.z;
     }
-    
+
     try {
       showStatus('sprue-status', 'Generating sprue...', 'info');
       generateBtn.disabled = true;
-      
+
       const connectorType = document.getElementById('connector-type').value;
-      
+
       const fd = new (FormData || window.FormData)();
       fd.append('file', currentFile);
       fd.append('build_plate_x', buildPlateX);
       fd.append('build_plate_y', buildPlateY);
       fd.append('build_plate_z', buildPlateZ);
       fd.append('connector_type', connectorType);
-      
+
       const response = await axios.post(`${API_BASE}/generate-sprue`, fd, {
         headers: fd.getHeaders ? fd.getHeaders() : {},
         responseType: 'arraybuffer'
       });
-      
+
       if (ipcRenderer) {
-        const savePath = await ipcRenderer.invoke('save-file', 
-          `${currentFile.name.split('.')[0]}_sprue.stl`);
+        const savePath = await ipcRenderer.invoke(
+          'save-file',
+          `${currentFile.name.split('.')[0]}_sprue.stl`
+        );
         if (savePath) {
           fs.writeFileSync(savePath, Buffer.from(response.data));
           showStatus('sprue-status', `Sprue generated`, 'success');
@@ -840,7 +931,7 @@ function initializePhoto() {
   const selectPhotosBtn = document.getElementById('select-photos-btn');
   const generateModelBtn = document.getElementById('generate-model-btn');
   const photoPreview = document.getElementById('photo-preview');
-  
+
   // Hidden input for web mode
   const webFileInput = document.createElement('input');
   webFileInput.type = 'file';
@@ -867,42 +958,47 @@ function initializePhoto() {
   function handlePhotoSelection(files) {
     if (files && files.length > 0) {
       currentFiles = files;
-      
+
       // Show preview
-      photoPreview.innerHTML = files.slice(0, 8).map(file => {
-        const src = (typeof file === 'string') ? file : URL.createObjectURL(file);
-        return `<img src="${src}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px; margin-right: 4px;">`;
-      }).join('') + (files.length > 8 ? `<span style="font-size:10px">+${files.length-8}</span>` : '');
-      
+      photoPreview.innerHTML =
+        files
+          .slice(0, 8)
+          .map((file) => {
+            const src = typeof file === 'string' ? file : URL.createObjectURL(file);
+            return `<img src="${src}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px; margin-right: 4px;">`;
+          })
+          .join('') +
+        (files.length > 8 ? `<span style="font-size:10px">+${files.length - 8}</span>` : '');
+
       generateModelBtn.classList.remove('hidden');
       showStatus('photo-status', `${files.length} images selected`, 'success');
     }
   }
-  
+
   generateModelBtn.addEventListener('click', async () => {
     if (currentFiles.length < 2) {
       showStatus('photo-status', 'Minimum 2 photos required', 'error');
       return;
     }
-    
+
     try {
       showStatus('photo-status', 'Processing...', 'info');
       generateModelBtn.disabled = true;
-      
+
       const fd = new (FormData || window.FormData)();
-      currentFiles.forEach(file => {
+      currentFiles.forEach((file) => {
         if (typeof file === 'string' && fs) {
           fd.append('files', fs.createReadStream(file));
         } else {
           fd.append('files', file);
         }
       });
-      
+
       const response = await axios.post(`${API_BASE}/photo-to-model`, fd, {
         headers: fd.getHeaders ? fd.getHeaders() : {},
         responseType: 'arraybuffer'
       });
-      
+
       if (ipcRenderer) {
         const savePath = await ipcRenderer.invoke('save-file', 'photo_model.stl');
         if (savePath) {
@@ -927,12 +1023,12 @@ function initializePhoto() {
 
 async function initializeMarketplace() {
   const marketplaceGrid = document.getElementById('marketplace-grid');
-  
+
   try {
     const res = await axios.get(`${API_BASE}/marketplace/items`);
     renderMarketplace(res.data);
   } catch (e) {
-    console.error("Marketplace fetch failed");
+    console.error('Marketplace fetch failed');
   }
 }
 
@@ -943,7 +1039,9 @@ function renderMarketplace(items) {
     return;
   }
 
-  grid.innerHTML = items.map(item => `
+  grid.innerHTML = items
+    .map(
+      (item) => `
     <div class="marketplace-item">
       <div class="market-thumb" style="display:flex; align-items:center; justify-content:center; color:var(--text-muted)">3D PREVIEW</div>
       <div class="market-info">
@@ -952,11 +1050,13 @@ function renderMarketplace(items) {
       </div>
       <button class="btn btn-outline btn-sm" style="width:100%; border-radius:0;" onclick="purchaseItem('${item.id}')">Get Part</button>
     </div>
-  `).join('');
+  `
+    )
+    .join('');
 }
 
 async function purchaseItem(itemId) {
-  alert("Redirecting to Stripe Checkout for secure payment...");
+  alert('Redirecting to Stripe Checkout for secure payment...');
   // In real app, call /api/marketplace/purchase to get checkout URL
 }
 
@@ -975,7 +1075,7 @@ async function initializePrinterProfiles() {
   saveBtn.addEventListener('click', async () => {
     const nameInput = document.getElementById('custom-printer-name');
     const customName = nameInput ? nameInput.value.trim() : '';
-    
+
     const data = {
       name: customName || `Custom Printer ${new Date().toLocaleDateString()}`,
       x: parseFloat(document.getElementById('plate-x').value),
@@ -1021,54 +1121,160 @@ async function fetchPrinterProfiles() {
     return res.data;
   } catch (error) {
     console.warn('Using standard printer profiles - backend unavailable');
-    // Comprehensive market resin printer database
+    // Comprehensive industry resin printer database (fallback)
     return {
-      // Elegoo Printers
-      'elegoo_mars_3': { name: 'Elegoo Mars 3', build_volume: { x: 143, y: 89, z: 175 } },
-      'elegoo_mars_3_pro': { name: 'Elegoo Mars 3 Pro', build_volume: { x: 143, y: 89, z: 175 } },
-      'elegoo_mars_4_ultra': { name: 'Elegoo Mars 4 Ultra', build_volume: { x: 153, y: 77, z: 165 } },
-      'elegoo_saturn_2': { name: 'Elegoo Saturn 2', build_volume: { x: 219, y: 123, z: 250 } },
-      'elegoo_saturn_3': { name: 'Elegoo Saturn 3', build_volume: { x: 218, y: 122, z: 250 } },
-      'elegoo_saturn_3_ultra': { name: 'Elegoo Saturn 3 Ultra', build_volume: { x: 218, y: 122, z: 250 } },
-      'elegoo_jupiter': { name: 'Elegoo Jupiter', build_volume: { x: 277, y: 156, z: 300 } },
-      
-      // Anycubic Printers
-      'anycubic_photon_m3': { name: 'Anycubic Photon M3', build_volume: { x: 163, y: 102, z: 180 } },
-      'anycubic_photon_m3_plus': { name: 'Anycubic Photon M3 Plus', build_volume: { x: 245, y: 197, z: 122 } },
-      'anycubic_photon_mono_x': { name: 'Anycubic Photon Mono X', build_volume: { x: 192, y: 120, z: 245 } },
-      'anycubic_photon_mono_x_6k': { name: 'Anycubic Photon Mono X 6K', build_volume: { x: 197, y: 122, z: 245 } },
-      'anycubic_photon_mono_4k': { name: 'Anycubic Photon Mono 4K', build_volume: { x: 132, y: 80, z: 165 } },
-      'anycubic_photon_d2': { name: 'Anycubic Photon D2', build_volume: { x: 131, y: 73, z: 165 } },
-      
-      // Phrozen Printers
-      'phrozen_sonic_mini_8k': { name: 'Phrozen Sonic Mini 8K', build_volume: { x: 165, y: 72, z: 180 } },
-      'phrozen_sonic_mighty_8k': { name: 'Phrozen Sonic Mighty 8K', build_volume: { x: 218, y: 123, z: 235 } },
-      'phrozen_sonic_mega_8k': { name: 'Phrozen Sonic Mega 8K', build_volume: { x: 330, y: 185, z: 400 } },
-      'phrozen_sonic_mighty_4k': { name: 'Phrozen Sonic Mighty 4K', build_volume: { x: 200, y: 125, z: 220 } },
-      
-      // Creality Printers
-      'creality_halot_one': { name: 'Creality Halot One', build_volume: { x: 127, y: 80, z: 160 } },
-      'creality_halot_one_pro': { name: 'Creality Halot One Pro', build_volume: { x: 127, y: 80, z: 160 } },
-      'creality_halot_mage': { name: 'Creality Halot Mage', build_volume: { x: 228, y: 128, z: 230 } },
-      'creality_halot_mage_pro': { name: 'Creality Halot Mage Pro', build_volume: { x: 228, y: 128, z: 230 } },
-      
-      // Formlabs Printers
-      'formlabs_form_3': { name: 'Formlabs Form 3', build_volume: { x: 145, y: 145, z: 185 } },
-      'formlabs_form_3_plus': { name: 'Formlabs Form 3+', build_volume: { x: 145, y: 145, z: 185 } },
-      'formlabs_form_3l': { name: 'Formlabs Form 3L', build_volume: { x: 200, y: 335, z: 300 } },
-      
-      // Prusa Printers
-      'prusa_sl1s': { name: 'Prusa SL1S', build_volume: { x: 127, y: 80, z: 150 } },
-      
-      // Longer Printers
-      'longer_orange_30': { name: 'Longer Orange 30', build_volume: { x: 120, y: 68, z: 170 } },
-      'longer_orange_4k': { name: 'Longer Orange 4K', build_volume: { x: 192, y: 120, z: 245 } },
-      
-      // Voxelab Printers
-      'voxelab_proxima_8': { name: 'Voxelab Proxima 8', build_volume: { x: 192, y: 120, z: 245 } },
-      
-      // Peopoly Printers
-      'peopoly_phenom': { name: 'Peopoly Phenom', build_volume: { x: 276, y: 155, z: 400 } }
+      // Elegoo Mars Series
+      elegoo_mars_3: { name: 'Elegoo Mars 3', build_volume: { x: 143.43, y: 89.6, z: 175 } },
+      elegoo_mars_3_pro: {
+        name: 'Elegoo Mars 3 Pro',
+        build_volume: { x: 143.43, y: 89.6, z: 175 }
+      },
+      elegoo_mars_4_ultra: {
+        name: 'Elegoo Mars 4 Ultra',
+        build_volume: { x: 153.36, y: 77.76, z: 165 }
+      },
+      elegoo_mars_4_max: {
+        name: 'Elegoo Mars 4 Max',
+        build_volume: { x: 196.608, y: 122.88, z: 150 }
+      },
+
+      // Elegoo Saturn Series
+      elegoo_saturn: { name: 'Elegoo Saturn', build_volume: { x: 192, y: 120, z: 200 } },
+      elegoo_saturn_2: { name: 'Elegoo Saturn 2', build_volume: { x: 218.88, y: 122.88, z: 250 } },
+      elegoo_saturn_3: { name: 'Elegoo Saturn 3', build_volume: { x: 218.88, y: 122.88, z: 250 } },
+      elegoo_saturn_3_ultra: {
+        name: 'Elegoo Saturn 3 Ultra',
+        build_volume: { x: 218.88, y: 122.88, z: 250 }
+      },
+      elegoo_saturn_4_ultra: {
+        name: 'Elegoo Saturn 4 Ultra',
+        build_volume: { x: 218.88, y: 122.88, z: 220 }
+      },
+
+      // Elegoo Jupiter Series
+      elegoo_jupiter: { name: 'Elegoo Jupiter', build_volume: { x: 277.848, y: 156.096, z: 300 } },
+      elegoo_jupiter_2: {
+        name: 'Elegoo Jupiter 2',
+        build_volume: { x: 277.848, y: 156.096, z: 320 }
+      },
+
+      // Anycubic Photon Series
+      anycubic_photon_mono_4k: {
+        name: 'Anycubic Photon Mono 4K',
+        build_volume: { x: 132, y: 80, z: 165 }
+      },
+      anycubic_photon_m3: {
+        name: 'Anycubic Photon M3',
+        build_volume: { x: 163.84, y: 102.4, z: 180 }
+      },
+      anycubic_photon_m3_plus: {
+        name: 'Anycubic Photon M3 Plus',
+        build_volume: { x: 245.76, y: 197.12, z: 122 }
+      },
+      anycubic_photon_m3_premium: {
+        name: 'Anycubic Photon M3 Premium',
+        build_volume: { x: 298.08, y: 164.16, z: 300 }
+      },
+      anycubic_photon_mono_x: {
+        name: 'Anycubic Photon Mono X',
+        build_volume: { x: 192, y: 120, z: 245 }
+      },
+      anycubic_photon_mono_x_6k: {
+        name: 'Anycubic Photon Mono X 6K',
+        build_volume: { x: 197.12, y: 122.88, z: 245 }
+      },
+      anycubic_photon_mono_x2: {
+        name: 'Anycubic Photon Mono X2',
+        build_volume: { x: 198, y: 124, z: 245 }
+      },
+      anycubic_photon_d2: {
+        name: 'Anycubic Photon D2',
+        build_volume: { x: 131.84, y: 73.73, z: 165 }
+      },
+
+      // Phrozen Sonic Series
+      phrozen_sonic_mini_8k: {
+        name: 'Phrozen Sonic Mini 8K',
+        build_volume: { x: 165, y: 72, z: 180 }
+      },
+      phrozen_sonic_mini_8k_s: {
+        name: 'Phrozen Sonic Mini 8K S',
+        build_volume: { x: 165, y: 71.28, z: 180 }
+      },
+      phrozen_sonic_mighty_4k: {
+        name: 'Phrozen Sonic Mighty 4K',
+        build_volume: { x: 200, y: 125, z: 220 }
+      },
+      phrozen_sonic_mighty_8k: {
+        name: 'Phrozen Sonic Mighty 8K',
+        build_volume: { x: 218, y: 123, z: 235 }
+      },
+      phrozen_sonic_mega_8k: {
+        name: 'Phrozen Sonic Mega 8K',
+        build_volume: { x: 330, y: 185, z: 400 }
+      },
+      phrozen_sonic_mega_8k_s: {
+        name: 'Phrozen Sonic Mega 8K S',
+        build_volume: { x: 330, y: 185.76, z: 400 }
+      },
+
+      // Creality Halot Series
+      creality_halot_one: { name: 'Creality Halot One', build_volume: { x: 127, y: 80, z: 160 } },
+      creality_halot_one_pro: {
+        name: 'Creality Halot One Pro',
+        build_volume: { x: 127.31, y: 80.82, z: 160 }
+      },
+      creality_halot_lite: { name: 'Creality Halot Lite', build_volume: { x: 127, y: 80, z: 160 } },
+      creality_halot_sky: { name: 'Creality Halot Sky', build_volume: { x: 192, y: 120, z: 200 } },
+      creality_halot_mage: {
+        name: 'Creality Halot Mage',
+        build_volume: { x: 228, y: 128, z: 230 }
+      },
+      creality_halot_mage_pro: {
+        name: 'Creality Halot Mage Pro',
+        build_volume: { x: 228.096, y: 128.304, z: 230 }
+      },
+      creality_halot_max: { name: 'Creality Halot Max', build_volume: { x: 298, y: 164, z: 340 } },
+
+      // Formlabs Form Series
+      formlabs_form_3: { name: 'Formlabs Form 3', build_volume: { x: 145, y: 145, z: 185 } },
+      formlabs_form_3_plus: { name: 'Formlabs Form 3+', build_volume: { x: 145, y: 145, z: 185 } },
+      formlabs_form_3l: { name: 'Formlabs Form 3L', build_volume: { x: 200, y: 335, z: 300 } },
+      formlabs_form_3b: { name: 'Formlabs Form 3B', build_volume: { x: 145, y: 145, z: 185 } },
+      formlabs_form_4: { name: 'Formlabs Form 4', build_volume: { x: 200, y: 125, z: 210 } },
+
+      // Prusa Research
+      prusa_sl1s: { name: 'Prusa SL1S', build_volume: { x: 127, y: 80, z: 150 } },
+
+      // Longer Orange Series
+      longer_orange_30: { name: 'Longer Orange 30', build_volume: { x: 120, y: 68, z: 170 } },
+      longer_orange_4k: { name: 'Longer Orange 4K', build_volume: { x: 192, y: 120, z: 245 } },
+
+      // Qidi Tech
+      qidi_shadow_6_pro: {
+        name: 'Qidi Shadow 6 Pro',
+        build_volume: { x: 131.56, y: 73.6, z: 160 }
+      },
+
+      // Peopoly
+      peopoly_phenom: { name: 'Peopoly Phenom', build_volume: { x: 276, y: 155, z: 400 } },
+      peopoly_phenom_l: { name: 'Peopoly Phenom L', build_volume: { x: 345, y: 194, z: 400 } },
+      peopoly_phenom_noir: {
+        name: 'Peopoly Phenom Noir',
+        build_volume: { x: 276, y: 155, z: 400 }
+      },
+
+      // Voxelab
+      voxelab_proxima_8_1: {
+        name: 'Voxelab Proxima 8.1',
+        build_volume: { x: 192, y: 120, z: 245 }
+      },
+
+      // Uniformation
+      uniformation_gk_two: { name: 'Uniformation GKtwo', build_volume: { x: 192, y: 120, z: 200 } },
+
+      // Custom option
+      custom: { name: 'Custom Printer', build_volume: { x: 192, y: 120, z: 245 } }
     };
   }
 }
@@ -1079,22 +1285,30 @@ async function loadPrinterProfiles() {
     console.error('Printer profile select element not found');
     return;
   }
-  
+
   try {
     const profiles = await fetchPrinterProfiles();
-    profileSelect.innerHTML = Object.entries(profiles).map(([id, p]) => `
+    profileSelect.innerHTML = Object.entries(profiles)
+      .map(
+        ([id, p]) => `
       <option value="${id}">${p.name} (${p.build_volume.x}×${p.build_volume.y}×${p.build_volume.z}mm)</option>
-    `).join('');
-    
+    `
+      )
+      .join('');
+
     // Auto-select Saturn 2 if available, otherwise first option
     if (profiles['elegoo_saturn_2']) {
       profileSelect.value = 'elegoo_saturn_2';
     }
-    
+
     // Trigger initial workspace update
     const firstProfile = profiles[profileSelect.value];
     if (firstProfile) {
-      createPrinterPlate(firstProfile.build_volume.x, firstProfile.build_volume.y, firstProfile.build_volume.z);
+      createPrinterPlate(
+        firstProfile.build_volume.x,
+        firstProfile.build_volume.y,
+        firstProfile.build_volume.z
+      );
       updateStatus(`Workspace set to ${firstProfile.name}`, 'info');
     }
   } catch (e) {
@@ -1113,9 +1327,12 @@ function showStatus(elementId, message, type) {
 function updateStatus(message, type = 'info') {
   const statusText = document.getElementById('status-text');
   statusText.textContent = message;
-  statusText.style.color = type === 'success' ? 'var(--success)' : 
-                          type === 'error' ? 'var(--error)' : 
-                          'var(--text-primary)';
+  statusText.style.color =
+    type === 'success'
+      ? 'var(--success)'
+      : type === 'error'
+        ? 'var(--error)'
+        : 'var(--text-primary)';
 }
 
 function formatFileSize(bytes) {
@@ -1127,10 +1344,10 @@ function formatFileSize(bytes) {
 async function checkBackendStatus() {
   try {
     const res = await axios.get(`${API_BASE}/health`, { timeout: 2000 });
-    document.getElementById('api-status').innerHTML = 
+    document.getElementById('api-status').innerHTML =
       'API Connected <span class="status-dot"></span>';
   } catch (error) {
-    document.getElementById('api-status').innerHTML = 
+    document.getElementById('api-status').innerHTML =
       'API Error <span class="status-dot" style="background: var(--error); box-shadow: 0 0 8px var(--error)"></span>';
   }
 }
@@ -1168,7 +1385,7 @@ async function checkProStatus() {
     const response = await axios.get(`${API_BASE}/pro/status`, {
       headers: { 'X-API-Key': proApiKey }
     });
-    
+
     if (response.data.is_pro) {
       isProUser = true;
       updateProUI(true, response.data);
@@ -1187,7 +1404,7 @@ async function checkProStatus() {
 function updateProUI(isPro, userData = null) {
   const proBtn = document.getElementById('pro-btn');
   const proStatus = document.getElementById('pro-status');
-  
+
   if (isPro && userData) {
     proBtn.classList.add('pro-active');
     proBtn.innerHTML = `
@@ -1233,7 +1450,7 @@ document.getElementById('pro-btn').addEventListener('click', async () => {
 
   try {
     showNotification('Creating checkout session...', 'info');
-    
+
     const response = await axios.post(`${API_BASE}/pro/subscribe`, {
       email: email,
       name: name
@@ -1246,12 +1463,17 @@ document.getElementById('pro-btn').addEventListener('click', async () => {
       } else {
         window.open(response.data.checkout_url, '_blank');
       }
-      
-      showNotification('Checkout opened in your browser. Complete payment and enter your API key here.', 'info');
-      
+
+      showNotification(
+        'Checkout opened in your browser. Complete payment and enter your API key here.',
+        'info'
+      );
+
       // Prompt for API key after checkout
       setTimeout(() => {
-        const apiKey = prompt('After completing payment, enter your API key from the confirmation email:');
+        const apiKey = prompt(
+          'After completing payment, enter your API key from the confirmation email:'
+        );
         if (apiKey && apiKey.length > 10) {
           localStorage.setItem('sprucecrafter_pro_key', apiKey);
           proApiKey = apiKey;
@@ -1267,4 +1489,3 @@ document.getElementById('pro-btn').addEventListener('click', async () => {
 
 // Check Pro status on load
 checkProStatus();
-
