@@ -72,6 +72,9 @@ ALLOWED_EXTENSIONS = ALLOWED_3D_FORMATS | ALLOWED_IMAGE_FORMATS
 # Default scale values
 DEFAULT_SCALE = 1 / 35  # 1/35 scale for armor models
 
+# Default port for Flask app
+DEFAULT_PORT = 5000
+
 
 def allowed_file(filename, file_types="all"):
     """
@@ -818,7 +821,15 @@ def pro_status():
 if __name__ == "__main__":
     # Get configuration from environment variables
     host = os.getenv("HOST", "127.0.0.1")
-    port = int(os.getenv("PORT", 5000))
+    
+    # Parse PORT with error handling for invalid values (e.g., literal "$PORT")
+    port_str = os.getenv("PORT", str(DEFAULT_PORT))
+    try:
+        port = int(port_str)
+    except ValueError:
+        logger.warning(f"Invalid PORT value '{port_str}', using default port {DEFAULT_PORT}")
+        port = DEFAULT_PORT
+    
     debug = os.getenv("FLASK_DEBUG", "True").lower() == "true"
 
     logger.info("Starting SprueCrafter Backend API...")

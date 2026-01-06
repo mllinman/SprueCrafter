@@ -30,10 +30,11 @@ In the Railway dashboard, add the following environment variables:
 #### Required Variables:
 ```
 HOST=0.0.0.0
-PORT=$PORT  # Railway sets this automatically
 FLASK_DEBUG=False
 UPLOAD_FOLDER=/tmp/sprucecrafter-uploads
 ```
+
+**Note:** Railway automatically provides the `PORT` environment variable - do NOT set it manually.
 
 #### Optional - For Pro Subscriptions (Stripe):
 ```
