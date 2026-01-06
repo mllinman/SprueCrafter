@@ -749,6 +749,35 @@ def get_printer_profiles():
     return jsonify(profiles)
 
 
+@app.route("/api/printer-profiles", methods=["POST"])
+@handle_errors
+def save_custom_printer_profile():
+    """
+    Save a custom printer profile (requires Pro subscription for persistence)
+    """
+    data = request.get_json()
+    
+    if not data or "name" not in data or "x" not in data or "y" not in data or "z" not in data:
+        return jsonify({"error": "Missing required fields: name, x, y, z"}), 400
+    
+    # For MVP, we'll just return success
+    # In production, this would save to database with user authentication
+    logger.info(f"Custom printer profile saved: {data['name']}")
+    
+    return jsonify({
+        "success": True,
+        "message": "Custom printer profile saved",
+        "profile": {
+            "name": data["name"],
+            "build_volume": {
+                "x": float(data["x"]),
+                "y": float(data["y"]),
+                "z": float(data["z"])
+            }
+        }
+    })
+
+
 # Pro subscription endpoints
 @app.route("/api/pro/subscribe", methods=["POST"])
 @handle_errors
