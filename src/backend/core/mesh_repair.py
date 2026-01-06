@@ -364,7 +364,8 @@ class MeshRepair:
             # Count faces with near-zero area
             degenerate = np.sum(areas < 1e-8)
             return int(degenerate)
-        except:
+        except (AttributeError, ValueError, TypeError) as e:
+            logger.debug(f"Could not count degenerate faces: {e}")
             return 0
 
     def _count_duplicate_vertices(self) -> int:
@@ -381,7 +382,8 @@ class MeshRepair:
                 )
             )
             return len(self.mesh.vertices) - len(unique_vertices)
-        except:
+        except (AttributeError, ValueError, TypeError) as e:
+            logger.debug(f"Could not count duplicate vertices: {e}")
             return 0
 
     def _check_non_manifold_edges(self) -> int:

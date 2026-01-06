@@ -850,13 +850,25 @@ def detect_islands():
     if not allowed_file(file.filename, "3d"):
         return jsonify({"error": "File type not allowed. Must be a 3D model format."}), 400
 
-    layer_height = float(request.form.get("layer_height", 0.05))
-    threshold = float(request.form.get("threshold", 0.1))
+    try:
+        layer_height = float(request.form.get("layer_height", 0.05))
+        if layer_height <= 0 or layer_height > 10:
+            return jsonify({"error": "Layer height must be between 0 and 10 mm"}), 400
+    except ValueError:
+        return jsonify({"error": "Invalid layer height value"}), 400
+
+    try:
+        threshold = float(request.form.get("threshold", 0.1))
+        if threshold < 0 or threshold > 1000:
+            return jsonify({"error": "Threshold must be between 0 and 1000 mm²"}), 400
+    except ValueError:
+        return jsonify({"error": "Invalid threshold value"}), 400
 
     logger.info(f"Detecting islands in {file.filename}")
 
-    # Save uploaded file
-    input_path = os.path.join(app.config["UPLOAD_FOLDER"], file.filename)
+    # Sanitize filename to prevent directory traversal
+    safe_filename = os.path.basename(file.filename)
+    input_path = os.path.join(app.config["UPLOAD_FOLDER"], safe_filename)
     file.save(input_path)
 
     # Load mesh
@@ -888,8 +900,9 @@ def repair_mesh():
 
     logger.info(f"Repairing mesh {file.filename}")
 
-    # Save uploaded file
-    input_path = os.path.join(app.config["UPLOAD_FOLDER"], file.filename)
+    # Sanitize filename to prevent directory traversal
+    safe_filename = os.path.basename(file.filename)
+    input_path = os.path.join(app.config["UPLOAD_FOLDER"], safe_filename)
     file.save(input_path)
 
     # Load mesh
@@ -930,8 +943,9 @@ def analyze_mesh():
 
     logger.info(f"Analyzing mesh {file.filename}")
 
-    # Save uploaded file
-    input_path = os.path.join(app.config["UPLOAD_FOLDER"], file.filename)
+    # Sanitize filename to prevent directory traversal
+    safe_filename = os.path.basename(file.filename)
+    input_path = os.path.join(app.config["UPLOAD_FOLDER"], safe_filename)
     file.save(input_path)
 
     # Load mesh
@@ -961,14 +975,27 @@ def hollow_model():
     if not allowed_file(file.filename, "3d"):
         return jsonify({"error": "File type not allowed. Must be a 3D model format."}), 400
 
-    wall_thickness = float(request.form.get("wall_thickness", 2.0))
-    drainage_holes = int(request.form.get("drainage_holes", 2))
+    try:
+        wall_thickness = float(request.form.get("wall_thickness", 2.0))
+        if wall_thickness <= 0 or wall_thickness > 50:
+            return jsonify({"error": "Wall thickness must be between 0 and 50 mm"}), 400
+    except ValueError:
+        return jsonify({"error": "Invalid wall thickness value"}), 400
+
+    try:
+        drainage_holes = int(request.form.get("drainage_holes", 2))
+        if drainage_holes < 0 or drainage_holes > 20:
+            return jsonify({"error": "Drainage holes must be between 0 and 20"}), 400
+    except ValueError:
+        return jsonify({"error": "Invalid drainage holes value"}), 400
+
     estimate_only = request.form.get("estimate_only", "false").lower() == "true"
 
     logger.info(f"Hollowing model {file.filename}")
 
-    # Save uploaded file
-    input_path = os.path.join(app.config["UPLOAD_FOLDER"], file.filename)
+    # Sanitize filename to prevent directory traversal
+    safe_filename = os.path.basename(file.filename)
+    input_path = os.path.join(app.config["UPLOAD_FOLDER"], safe_filename)
     file.save(input_path)
 
     # Load mesh

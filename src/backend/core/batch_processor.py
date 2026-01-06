@@ -38,21 +38,39 @@ class BatchProcessor:
             loaded = []
             failed = []
 
+            # Allowed 3D file extensions
+            allowed_extensions = {'.stl', '.obj', '.fbx', '.3ds', '.ply', '.gltf', '.glb', '.dae'}
+
             for file_path in file_paths:
                 try:
-                    if os.path.exists(file_path):
-                        mesh = trimesh.load(file_path)
-                        loaded.append(
-                            {
-                                "path": file_path,
-                                "filename": os.path.basename(file_path),
-                                "mesh": mesh,
-                                "vertex_count": len(mesh.vertices) if hasattr(mesh, 'vertices') else 0,
-                                "face_count": len(mesh.faces) if hasattr(mesh, 'faces') else 0,
-                            }
-                        )
-                    else:
+                    # Validate file exists
+                    if not os.path.exists(file_path):
                         failed.append({"path": file_path, "error": "File not found"})
+                        continue
+
+                    # Validate file extension
+                    file_ext = os.path.splitext(file_path)[1].lower()
+                    if file_ext not in allowed_extensions:
+                        failed.append({"path": file_path, "error": f"Unsupported file type: {file_ext}"})
+                        continue
+
+                    # Validate file size (limit to 500MB)
+                    file_size = os.path.getsize(file_path)
+                    if file_size > 500 * 1024 * 1024:  # 500MB
+                        failed.append({"path": file_path, "error": "File too large (max 500MB)"})
+                        continue
+
+                    # Load the mesh
+                    mesh = trimesh.load(file_path)
+                    loaded.append(
+                        {
+                            "path": file_path,
+                            "filename": os.path.basename(file_path),
+                            "mesh": mesh,
+                            "vertex_count": len(mesh.vertices) if hasattr(mesh, 'vertices') else 0,
+                            "face_count": len(mesh.faces) if hasattr(mesh, 'faces') else 0,
+                        }
+                    )
                 except Exception as e:
                     failed.append({"path": file_path, "error": str(e)})
 

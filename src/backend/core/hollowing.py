@@ -69,9 +69,9 @@ class Hollowing:
             try:
                 # Use boolean difference if available
                 self.hollowed_mesh = self.mesh.difference(inner_mesh)
-            except:
+            except Exception as e:
                 # Fallback: just concatenate the meshes
-                logger.warning("Boolean operation not available, using concatenation")
+                logger.warning(f"Boolean operation not available: {e}, using concatenation")
                 self.hollowed_mesh = trimesh.util.concatenate([self.mesh, inner_mesh])
 
             # Add drainage holes
