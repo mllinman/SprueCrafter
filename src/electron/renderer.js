@@ -225,6 +225,15 @@ function initializeWorkspaceSettings() {
       }
     });
   }
+
+  // Upgrade to Pro button in Settings tab
+  const upgradeProBtn = document.getElementById('upgrade-pro-btn');
+  if (upgradeProBtn) {
+    upgradeProBtn.addEventListener('click', () => {
+      // Trigger the same Pro subscription flow as the main pro-btn
+      document.getElementById('pro-btn').click();
+    });
+  }
 }
 
 function createPrinterPlate(width, depth, height) {
