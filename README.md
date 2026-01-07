@@ -540,6 +540,14 @@ Deploy SprueCrafter as a web application on Railway:
 
 See [FUTURE_IMPROVEMENTS.md](FUTURE_IMPROVEMENTS.md) for a comprehensive list of planned features and enhancements, including capabilities from competitive slicer and sprue creation programs.
 
+## Business & Marketing
+
+Want to learn more about SprueCrafter's business strategy and market approach?
+
+- **[Business & Marketing Executive Summary](BUSINESS_MARKETING_EXECUTIVE_SUMMARY.md)** - Quick overview of strategy and goals
+- **[Business Plan](BUSINESS_PLAN.md)** - Comprehensive business strategy, market analysis, and financial projections
+- **[Marketing Plan](MARKETING_PLAN.md)** - Detailed marketing execution plan with channels, budgets, and metrics
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit pull requests or open issues for bugs and feature requests. Check [FUTURE_IMPROVEMENTS.md](FUTURE_IMPROVEMENTS.md) for ideas on what features to implement.
